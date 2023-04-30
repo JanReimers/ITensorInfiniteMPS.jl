@@ -1,3 +1,4 @@
+import ITensorMPOCompression: ac_qx, forward
 #--------------------------------------------------------------------------------------------
 #
 #  Functions for bringing an iMPO into left or right canonical form
@@ -70,7 +71,7 @@ function ac_orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwarg
 
   if verbose
     previous_Dw = Base.max(get_Dw(H)...)
-    @printf "niter  Dw  eta\n"
+    println("niter  Dw  eta\n")
   end
 
   eps = 1e-13
@@ -96,7 +97,7 @@ function ac_orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwarg
     end
     niter += 1
     if verbose
-      @printf "%4i %4i %1.1e\n" niter Base.max(get_Dw(H)...) eta
+      println("$niter $(Base.max(get_Dw(H)...)) $eta")
     end
     loop = eta > 1e-13 && niter < max_iter
   end

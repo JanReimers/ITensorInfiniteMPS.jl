@@ -1,3 +1,6 @@
+import ITensorInfiniteMPS: AbstractInfiniteMPS
+import ITensorMPOCompression: orth_type, reg_form, regform_blocks, is_regular_form, parse_links, check
+import ITensors: setinds
 #-----------------------------------------------------------------------
 #
 #  Infinite lattice iMPO with repeating unit cell
@@ -54,8 +57,8 @@ end
     Wb1.icb=Wb1.icd
   end
 
-  function extract_blocks(H::reg_form_iMPO,lr::orth_type;kwargs...)
-    Wbs=extract_blocks.(H,lr;kwargs...)
+  function ITensorMPOCompression.extract_blocks(H::reg_form_iMPO,lr::orth_type;kwargs...)
+    Wbs=ITensorMPOCompression.extract_blocks.(H,lr;kwargs...)
     N=length(Wbs)
     for n in 1:N-1
       fix_inds(Wbs[n],Wbs[n+1])
@@ -79,7 +82,7 @@ end
       throw(ErrorException("MPO++(H::MPO), H must be in either lower or upper regular form"))
     end
     if (bl && bu)
-      # @pprint(H[1])
+      @pprint(H[1])
       @assert false
     end
     ul::reg_form = bl ? lower : upper #if both bl and bu are true then something is seriously wrong
@@ -92,7 +95,7 @@ end
   end
   
   #same as reg_form_MPO version
-  function check(Hrf::reg_form_iMPO)
+  function ITensorMPOCompression.check(Hrf::reg_form_iMPO)
     check.(Hrf)
   end
 
@@ -128,24 +131,29 @@ end
   #   return l, r
   # end
   
-  function get_Dw(Hrf::reg_form_iMPO)
+  function ITensorMPOCompression.get_Dw(Hrf::reg_form_iMPO)
     return map(n -> dim(Hrf[n].iright), eachindex(Hrf))
   end
   
-  maxlinkdim(Hrf::reg_form_iMPO)=maximum(get_Dw(Hrf))
-  maxlinkdim(Hrf::reg_form_MPO)=maximum(get_Dw(Hrf))
+  ITensors.maxlinkdim(Hrf::reg_form_iMPO)=maximum(get_Dw(Hrf))
+  ITensors.maxlinkdim(Hrf::reg_form_MPO)=maximum(get_Dw(Hrf))
   
-  check_ortho(H::InfiniteMPO,lr::orth_type)=check_ortho(reg_form_iMPO(H),lr)
-  function linkind(M::AbstractInfiniteMPS, j::Integer)
+  ITensorMPOCompression.check_ortho(H::InfiniteMPO,lr::orth_type)=check_ortho(reg_form_iMPO(H),lr)
+  function ITensors.linkind(M::AbstractInfiniteMPS, j::Integer)
     return commonind(M[j], M[j + 1])
   end
+
+  function detect_regular_form(H::AbstractInfiniteMPS;kwargs...)::Tuple{Bool,Bool}
+    return is_regular_form(H, lower;kwargs...), is_regular_form(H, upper;kwargs...)
+  end
+
   function is_regular_form(H::AbstractInfiniteMPS, ul::reg_form;kwargs...)::Bool
     il = dag(linkind(H, 0))
     for n in 1:length(H)
       ir = linkind(H, n)
       #@show il ir inds(H[n])
       Wrf = reg_form_Op(H[n], il, ir, ul)
-      !is_regular_form(Wrf;kwargs...) && return false
+      !ITensorMPOCompression.is_regular_form(Wrf;kwargs...) && return false
       il = dag(ir)
     end
     return true
@@ -167,7 +175,7 @@ end
     return lr == left ? (1:1:N) : (N:-1:1)
   end
 
-  function check_ortho(H::reg_form_iMPO, lr::orth_type;kwargs...)::Bool
+  function ITensorMPOCompression.check_ortho(H::reg_form_iMPO, lr::orth_type;kwargs...)::Bool
     for n in sweep(H, lr) #skip the edge row/col opertors
       !check_ortho(H[n], lr;kwargs...) && return false
     end

@@ -3,6 +3,7 @@ module ITensorInfiniteMPS
 # For `only`, which was introduced in Julia v1.4
 using Compat
 using ITensors
+using ITensorMPOCompression
 # For optional ITensorsVisualization dependency.
 using Requires
 # For using ∞ as lengths, ranges, etc.
@@ -26,7 +27,10 @@ using KrylovKit: eigsolve, linsolve, exponentiate
 
 import Base: getindex, length, setindex!, +, -, *
 
-import ITensors: AbstractMPS, ⊕
+import ITensors: AbstractMPS, ⊕, permute
+
+import ITensorMPOCompression: @mpoc_assert, reg_form_Op
+
 
 include("ITensors.jl")
 include("ITensorNetworks.jl")
@@ -52,10 +56,16 @@ include("vumps_generic.jl")
 include("vumps_localham.jl")
 include("vumps_nonlocalham.jl")
 include("vumps_mpo.jl")
+include("iMPO_compression/reg_form_iMPO.jl")
+include("iMPO_compression/gauge_fix.jl")
+include("iMPO_compression/orthogonalize.jl")
+include("iMPO_compression/truncate.jl")
+include("infinitecanonicalmpo.jl")
 
 export Cell,
   CelledVector,
   InfiniteMPS,
+  InfiniteCanonicalMPO,
   InfiniteCanonicalMPS,
   InfMPS,
   InfiniteSum,

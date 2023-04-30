@@ -1,4 +1,6 @@
 using SparseArrays
+import ITensorMPOCompression: is_gauge_fixed, extract_blocks, A0, b0, c0, vector_o2,  
+      set_𝐛̂_block!, set_𝐜̂_block!, set_𝐝̂_block!
 
 #-----------------------------------------------------------------------
 #
@@ -114,4 +116,11 @@ function gauge_fix!(
   set_𝐜̂_block!(W, 𝐜̂⎖)
   set_𝐝̂_block!(W, 𝐝̂⎖)
   return check(W)
+end
+#
+#  Make sure indices are ordered and then convert to a matrix
+#
+function NDTensors.matrix(il::Index, T::ITensor, ir::Index)
+  T1 = ITensors.permute(T, il, ir; allow_alias=true)
+  return matrix(T1)
 end

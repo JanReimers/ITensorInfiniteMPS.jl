@@ -226,7 +226,7 @@ function subspace_expansion(
   )
 
   C = ITensor(dag(newl)..., dag(newr)...)
-  ψCⁿ¹ = permute(ψ.C[n1], lⁿ¹..., rⁿ¹...)
+  ψCⁿ¹ = ITensors.permute(ψ.C[n1], lⁿ¹..., rⁿ¹...)
   for I in eachindex(ψ.C[n1])
     v = ψCⁿ¹[I]
     if !iszero(v)

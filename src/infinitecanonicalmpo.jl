@@ -14,7 +14,7 @@ ITensors.data(H::InfiniteCanonicalMPO)=H.AL
 ITensorInfiniteMPS.isreversed(::InfiniteCanonicalMPO)=false
 Base.getindex(H::InfiniteCanonicalMPO, n::Int64)=getindex(H.AL,n)
 
-function check_ortho(H::InfiniteCanonicalMPO)::Bool
+function ITensorMPOCompression.check_ortho(H::InfiniteCanonicalMPO)::Bool
     return check_ortho(H.AL,left) && check_ortho(H.AR,right)
 end
 
@@ -26,7 +26,7 @@ function check_gauge(H::InfiniteCanonicalMPO)::Float64
     return sqrt(eps2)
 end
 
-function orthogonalize(Hi::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
+function ITensors.orthogonalize(Hi::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
     HL=reg_form_iMPO(Hi) #not HL yet, but will be after two ortho calls.
     ac_orthogonalize!(HL, right; kwargs...)
     HR = copy(HL)
@@ -34,7 +34,7 @@ function orthogonalize(Hi::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
     return InfiniteCanonicalMPO(HL,Gs,HR)
 end
 
-function truncate(Hi::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
+function ITensors.truncate(Hi::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
     HL, HR, Ss, ss = truncate!(reg_form_iMPO(Hi))
     return InfiniteCanonicalMPO(HL,Ss,HR),ss
 end
