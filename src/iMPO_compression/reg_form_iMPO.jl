@@ -1,6 +1,3 @@
-import ITensorInfiniteMPS: AbstractInfiniteMPS
-import ITensorMPOCompression: orth_type, reg_form, regform_blocks, is_regular_form, parse_links, check
-import ITensors: setinds
 #-----------------------------------------------------------------------
 #
 #  Infinite lattice iMPO with repeating unit cell

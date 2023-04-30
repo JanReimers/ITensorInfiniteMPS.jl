@@ -1,4 +1,3 @@
-import ITensorMPOCompression: ac_qx, forward
 #--------------------------------------------------------------------------------------------
 #
 #  Functions for bringing an iMPO into left or right canonical form

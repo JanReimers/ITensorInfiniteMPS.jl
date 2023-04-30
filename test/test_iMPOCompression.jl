@@ -1,9 +1,8 @@
 using ITensors, ITensorMPOCompression, ITensorInfiniteMPS
 using Test, Revise
 
-import ITensorMPOCompression: check, regform_blocks, extract_blocks, A0, b0, c0, vector_o2, MPO, get_Dw
-import ITensorMPOCompression: check_ortho
-import ITensorInfiniteMPS: check_gauge
+import ITensorMPOCompression: regform_blocks, extract_blocks,  A0, b0, c0
+
 #Base.show(io::IO, f::Float64) = @printf(io, "%1.3f", f) #dumb way to control float output
 
 #H = ΣⱼΣn (½ S⁺ⱼS⁻ⱼ₊n + ½ S⁻ⱼS⁺ⱼ₊n + SᶻⱼSᶻⱼ₊n)
@@ -167,7 +166,7 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
       Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
       @test check_ortho(Ht) #AL is left ortho && AR is right ortho
       @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
-      @show BondSpectrums
+      #@show BondSpectrums
   end
 
 end

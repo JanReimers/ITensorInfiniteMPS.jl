@@ -1,4 +1,3 @@
-import ITensorMPOCompression: redim, grow
 
 @doc """
     truncate!(H::InfiniteMPO;kwargs...)

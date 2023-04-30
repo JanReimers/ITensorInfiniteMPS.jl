@@ -1,6 +1,4 @@
 using SparseArrays
-import ITensorMPOCompression: is_gauge_fixed, extract_blocks, A0, b0, c0, vector_o2,  
-      set_𝐛̂_block!, set_𝐜̂_block!, set_𝐝̂_block!
 
 #-----------------------------------------------------------------------
 #
