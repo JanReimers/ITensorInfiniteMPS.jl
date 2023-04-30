@@ -28,9 +28,9 @@ end
 
 function ITensors.orthogonalize(Hi::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
     HL=reg_form_iMPO(Hi) #not HL yet, but will be after two ortho calls.
-    ac_orthogonalize!(HL, right; kwargs...)
+    orthogonalize!(HL, right; kwargs...)
     HR = copy(HL)
-    Gs = ac_orthogonalize!(HL,left; kwargs...)
+    Gs = orthogonalize!(HL,left; kwargs...)
     return InfiniteCanonicalMPO(HL,Gs,HR)
 end
 

@@ -58,9 +58,9 @@ function truncate!(
   #  Orthogonalize and get the gauge transforms between HL and HR
   #
   HR=copy(H)
-  ac_orthogonalize!(HR, left; cutoff=rr_cutoff, kwargs...)
+  orthogonalize!(HR, left; cutoff=rr_cutoff, kwargs...)
   HL = copy(HR)
-  Gs = ac_orthogonalize!(HR, right; cutoff=rr_cutoff, kwargs...)
+  Gs = orthogonalize!(HR, right; cutoff=rr_cutoff, kwargs...)
   #
   #  Now compress and gauge transforms and apply the similarity transform to HL and HR.
   #

@@ -54,7 +54,7 @@ true
 ```
 
 """
-function ac_orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs...)
+function orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs...)
   gauge_fix!(H)
 
   N = length(H)

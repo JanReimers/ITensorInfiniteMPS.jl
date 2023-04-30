@@ -105,37 +105,6 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
       
   end
 
-  # @testset "Convert upper iMPO to lower H=$(model[1]), qns=$qns" for model in models, qns in [false,true], N in [1,2,3,4], NNN in [1,4]
-  #   initstate(n) = "↑"
-  #   sites = infsiteinds(model[2], N; initstate, conserve_qns=false)
-  #   Hu = reg_form_iMPO(model[1](sites, NNN;ul=upper);honour_upper=true)
-  #   @test is_regular_form(Hu)
-  #   @test Hu.ul==upper
-
-  #   Hl = transpose(Hu)
-  #   @test Hu.ul==upper
-  #   @test is_regular_form(Hu)
-  #   @test Hl.ul==lower
-  #   @test is_regular_form(Hl;verbose=true)
-  #   @test !check_ortho(Hu,left)
-  #   @test !check_ortho(Hl,left)
-  #   @test !check_ortho(Hu,right)
-  #   @test !check_ortho(Hl,right)
-    
-  #   ac_orthogonalize!(Hl,left)
-  #   @test Hl.ul==lower
-  #   @test is_regular_form(Hl;verbose=true)
-  #   @test check_ortho(Hl,left)
-  #   @test !check_ortho(Hu,left)
-  #   @test !check_ortho(Hu,right)
-  #   Hu1=transpose(Hl)
-  #   @test Hu1.ul==upper
-  #   @test is_regular_form(Hu1)
-  #   @test check_ortho(Hu1,left;verbose=true)
-    
-  # end
-
-
   @testset "Truncate/Compress InfiniteCanonicalMPO, H=$(model[1]), qbs=$qns, Ncell=$Ncell, NNN=$NNN" for model in models,
     qns in [false,true], Ncell in [1,3], NNN in [1,4]
       eps=NNN*1e-14
