@@ -259,7 +259,7 @@ end
 #     return L1,R1
 # end
 
-function apply_TW_left(Lₖ₋₁::Vector{ITensor},Ŵ::ITensor,ψ::ITensor)
+function apply_TW_left(Lₖ₋₁::Vector{ITensor},Ŵ::ITensor,ψ::ITensor,δˢk::ITensor;skip_𝕀=false)
     ψ′ =dag(ψ)'
     il,ir=parse_links(Ŵ)
     dh,_,_=parse_site(Ŵ)
@@ -270,18 +270,28 @@ function apply_TW_left(Lₖ₋₁::Vector{ITensor},Ŵ::ITensor,ψ::ITensor)
         for a in Dw:-1:b
             if isassigned(Lₖ₋₁,a) 
                 Wab=slice(Ŵ,il=>a,ir=>b)
-                # nab=norm(Wab)
-                W2=scalar(Wab*dag(Wab))
-                # if nab>=0.0
-                    if !isassigned(Lₖ,b)
-                        Lₖ[b]=emptyITensor()
+                is_zero=norm(Wab)==0.0
+                is_𝕀=!is_zero && scalar(Wab*dag(δˢk))==dh
+                is_diag= a==b
+                if !is_zero && is_diag && a>1 && a<Dw
+                    if is_𝕀
+                        @error "apply_TW_left: found unit operator on the diagonal, away from the corners"
+                    else
+                        @error "apply_TW_left: found non-zero operator on the diagonal, away from the corners. This is not supported yet"
                     end
-                    Lₖ[b]+=Lₖ₋₁[a]*ψ′*Wab*ψ
-                    @assert order(Lₖ[b])==2
-                if W2==dh && a==b && a<Dw && a>1
-                    @show dh a b Wab
+                    @show a b Wab
                     @assert false
-                end #if W2>0
+                end
+                if skip_𝕀 && is_diag && is_𝕀 && a==1 
+                    println("Skipping unit op")
+                    continue #skip the 𝕀 op in the upper left corner
+                end
+                if !isassigned(Lₖ,b)
+                    Lₖ[b]=emptyITensor()
+                end
+                Lₖ[b]+=Lₖ₋₁[a]*ψ′*Wab*ψ
+                @assert order(Lₖ[b])==2
+                
             end # if L[a] assigned
         end # for a
     end # for b
@@ -293,9 +303,10 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     ψ′ =dag(ψ)'
     l = linkinds(only, ψ.AL)
     r = linkinds(only, ψ.AR)
-    # s = siteinds(only, ψ)
+    s = siteinds(only, ψ)
     δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
     δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
+    δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
     # dh=dim(s[1])
     il,ir=ITensorMPOCompression.parse_links(H[1])
     @assert dim(il)==dim(ir)
@@ -321,19 +332,20 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
         #  Loop throught the unit cell and apply Tᵂₗ
         #
         for k in 2-N:1
-            Lₖ₋₁=apply_TW_left(Lₖ₋₁,H[k],ψ.AL[k])
+            Lₖ₋₁=apply_TW_left(Lₖ₋₁,H[k],ψ.AL[k],δˢ(k);skip_𝕀=false)
         end # for k
         @assert isassigned(Lₖ₋₁,b1) 
         L₁[b1]=Lₖ₋₁[b1] #save the new value.
     end #for b1
+    # println("Done L1")
 
     # @show array.(L₁) inds.(L₁)
     localR = ψ.C[1] * δʳ(1) * ψ′.C[1] #to revise
     # @show localR
     eₗ = [0.0]
     eₗ[1] = (L₁[1] * localR)[]
-    @show eₗ[1]
-    L₁[1] += -(eₗ[1] * denseblocks(δˡ(1)))
+    @show eₗ[1] #L₁[1]
+    L₁[1] += -(eₗ[1] * denseblocks(δˡ(1))) #from Loic's MPOMatrix code.
     A = ALk(ψ, 1)
     L₁[1], info = linsolve(A, L₁[1], 1, -1; tol=tol)
 
@@ -345,14 +357,17 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     #  Now sweep throught the cell and evlaute all the L[k] form L[1]
     #
     for k in 2:N
-        L[k]=apply_TW_left(L[k-1],H[k],ψ.AL[k])
+        L[k]=apply_TW_left(L[k-1],H[k],ψ.AL[k],δˢ(k))
     end
     #
     #  Verify that we get L[1] back from L[0]
     #
-    L₁=apply_TW_left(L[0],H[1],ψ.AL[1])
+    L₁=apply_TW_left(L[0],H[1],ψ.AL[1],δˢ(1))
     for b in 2:Dw #We know that L₁[1] is wrong
-        @assert  norm(L₁[b]-L[1][b])==0.0
+        if norm(L₁[b]-L[1][b])!=0.0
+            @show L₁[b] L[1][b]
+            @assert  false
+        end
     end
 
     return L,eₗ[1]
@@ -451,7 +466,7 @@ expected_eₗ=[0.25,-0.5,-0.25,-1.0,-0.75,-1.5,-1.25,-2]
 let 
     println("----------------------------------------------")
     initstate(n) = isodd(n) ? "↑" : "↓"
-    for N in 1:8
+    for N in 2:8
         s = siteinds("S=1/2", N; conserve_qns=false)
         si = infsiteinds(s)
         ψ = InfMPS(si, initstate)
@@ -472,11 +487,13 @@ let
         @assert abs(eₗ-expected_eₗ[N])<1e-15
 
         #@show array.(L)
+        Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
+        L,eₗ=left_environment(Hm,ψ) #Loic's version
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        
     end
 
-    # Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
-    # L,el=left_environment(Hm,ψ)
-    # @show array.(L[1])  el
+    # 
 
     # ψ = InfiniteMPS(s;space=2)
     # for n in 1:N
