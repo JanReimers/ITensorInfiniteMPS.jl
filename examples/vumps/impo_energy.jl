@@ -32,7 +32,7 @@ vumps_kwargs = (
     #   multisite_update_alg="parallel",
       tol=1e-8,
       maxiter=50,
-      outputlevel=1,
+      outputlevel=0,
       time_step=-Inf,
     )
 
@@ -316,6 +316,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
     δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
     δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
+    D=dim(l[1])
     # dh=dim(s[1])
     il,ir=ITensorMPOCompression.parse_links(H[1])
     @assert dim(il)==dim(ir)
@@ -372,7 +373,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     #
     L₁=apply_TW_left(L[0],H[1],ψ.AL[1],δˢ(1))
     for b in 2:Dw #We know that L₁[1] is wrong
-        if norm(L₁[b]-L[1][b])!=0.0
+        if norm(L₁[b]-L[1][b])>1e-15*D*N
             @show L₁[b] L[1][b]
             @assert  false
         end
@@ -433,6 +434,7 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
     δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
     δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
+    D=dim(l[1])
     il,ir=ITensorMPOCompression.parse_links(H[1])
     @assert dim(il)==dim(ir)
     Dw=dim(il)
@@ -486,7 +488,7 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     # @show inds.(R[2])  inds(ψ.AR[2]) inds(H[2])
     R₁=apply_TW_right(R[2],H[2],ψ.AR[2],δˢ(2))
     for b in 1:Dw-1 #We know that R₁[Dw] is wrong
-        if norm(R₁[b]-R[1][b])!=0.0
+        if norm(R₁[b]-R[1][b])>1e-15*D*N
             @show R₁[b] R[1][b]
             @assert  false
         end
@@ -495,54 +497,70 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     return R,eᵣ[1]
 end
 
-expected_eₗ=[0.25,-0.5,-0.25,-1.0,-0.75,-1.5,-1.25,-2]
+expected_e=[
+    [0.25,-0.5/2,-0.25/3,-1.0/4,-0.75/5,-1.5/6,-1.25/7,-2/8],
+    [0.0,-0.4279080101,0.0,-0.4279080101,0.0,-0.4279080101,0.0,-0.4279080101],
+    [],
+    [0.0,-0.4410581973,0.0,-0.4410581973,0.0,-0.4410581973,0.0,-0.4410581973]
+    ]
+
+eps=[1e-15,1e-9,0.0,2e-9]
 
 let 
     println("----------------------------------------------")
     initstate(n) = isodd(n) ? "↑" : "↓"
     for N in 1:8
+        for nex in [0,1,2]
+            isodd(N) && nex>0 && continue
         s = siteinds("S=1/2", N; conserve_qns=false)
         si = infsiteinds(s)
         ψ = InfMPS(si, initstate)
-
-
         Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
+        ψ = tdvp(Hm, ψ; vumps_kwargs...)
+        for _ in 1:nex
+            ψ = subspace_expansion(ψ, Hm; cutoff=1e-8,maxdim=16)
+            ψ = tdvp(Hm, ψ; vumps_kwargs...)
+        end
+        l = linkinds(only, ψ.AL)
+        D=dim(l[1])
+        println("Testing Ncell=$N, bond dimension D=$D")
+        
+
         L,eₗ=left_environment(Hm,ψ) #Loic's version
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        # @show abs(eₗ/N-expected_e[D][N]) nex D eps[D]
+        @assert abs(eₗ/N-expected_e[D][N])<eps[D]
         R,eᵣ=right_environment(Hm,ψ) #Loic's version
-        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+        @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
 
 
         H = InfiniteMPO(Model("heisenberg"), si)
         L,eₗ=left_environment(H,ψ)
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        @assert abs(eₗ/N-expected_e[D][N])<eps[D]
         R,eᵣ=right_environment(H,ψ)
-        @assert abs(eᵣ-expected_eₗ[N])<1e-15
-        
+        # @show abs(eᵣ/N-expected_eₗ[D][N]) D eps[D]
+        @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+
         Hc=orthogonalize(H)
         L,eₗ=left_environment(Hc.AL,ψ)
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        @assert abs(eₗ/N-expected_e[D][N])<eps[D]
         L,eₗ=left_environment(Hc.AR,ψ)
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        @assert abs(eₗ/N-expected_e[D][N])<eps[D]
         R,eᵣ=right_environment(Hc.AL,ψ)
-        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+        @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
         R,eᵣ=right_environment(Hc.AR,ψ)
-        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+        @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
 
 
         Hc,BondSpectrums = truncate(H) 
         L,eₗ=left_environment(Hc.AL,ψ)
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        @assert abs(eₗ/N-expected_e[D][N])<eps[D]
         L,eₗ=left_environment(Hc.AR,ψ)
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        @assert abs(eₗ/N-expected_e[D][N])<eps[D]
         R,eᵣ=right_environment(Hc.AL,ψ)
-        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+        @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
         R,eᵣ=right_environment(Hc.AR,ψ)
-        @assert abs(eᵣ-expected_eₗ[N])<1e-15
-
-        # #@show array.(L)
-        
-        
+        @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+        end
     end
 
     # 
@@ -555,9 +573,6 @@ let
     # for n in 1:N
     #     @show norm(ψ.AL[n]*ψ.C[n] - ψ.C[n-1]*ψ.AR[n])
     # end
-    # @show inds(ψ.AL[1]) inds(ψ.AR[1])
-    # R,er=right_environment(Hm,ψ)
-    # @show R[1] R[2] er
     #ψ = tdvp(Hm, ψ; vumps_kwargs...)
     # for _ in 1:1
     #     ψ = subspace_expansion(ψ, Hm; cutoff=1e-8,maxdim=16)
