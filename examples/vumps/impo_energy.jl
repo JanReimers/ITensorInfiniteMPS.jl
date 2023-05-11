@@ -176,15 +176,20 @@ function (A::ARk)(x)
     # δˡ(kk) = δ(l[kk], l′[kk])
     δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
 
+    # @show inds(x)
     xT = translatecell(translator(ψ), x, 1) #xT = x shifted one unit cell to the right.
-    TL=nothing
-    for k′=k+N-1:-1:k
+    # @show inds(xT)
+    
+    # TL=nothing
+    for k′=k+N:-1:k+1
+        # @show k k′ inds(ψ.AR[k′])
         xT*=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
-        if isnothing(TL)
-            TL=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
-        else
-            TL*=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
-        end
+        @assert order(xT)==2
+        # if isnothing(TL)
+        #     TL=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
+        # else
+        #     TL*=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
+        # end
     end
     L=ψ.C[k] * (ψ′.C[k]*δˡ(k))
     𝕀=denseblocks(δʳ(k))
@@ -259,6 +264,10 @@ end
 #     return L1,R1
 # end
 
+
+#
+#   (Lₖ|=(Lₖ₋₁|*T(k)ᵂₗ
+#
 function apply_TW_left(Lₖ₋₁::Vector{ITensor},Ŵ::ITensor,ψ::ITensor,δˢk::ITensor;skip_𝕀=false)
     ψ′ =dag(ψ)'
     il,ir=parse_links(Ŵ)
@@ -341,10 +350,9 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
 
     # @show array.(L₁) inds.(L₁)
     localR = ψ.C[1] * δʳ(1) * ψ′.C[1] #to revise
-    # @show localR
     eₗ = [0.0]
     eₗ[1] = (L₁[1] * localR)[]
-    @show eₗ[1] #L₁[1]
+    # @show localR array.(L₁) eₗ[1]
     L₁[1] += -(eₗ[1] * denseblocks(δˡ(1))) #from Loic's MPOMatrix code.
     A = ALk(ψ, 1)
     L₁[1], info = linsolve(A, L₁[1], 1, -1; tol=tol)
@@ -373,123 +381,167 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     return L,eₗ[1]
 end
 
-function environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
-    # ψ′ =dag(ψ)'
+#
+#   |Rₖ₋₁)=T(k)ᵂᵣ*|Rₖ)
+#
+function apply_TW_right(Rₖ::Vector{ITensor},Ŵ::ITensor,ψ::ITensor,δˢk::ITensor;skip_𝕀=false)
+    ψ′ =dag(ψ)'
+    il,ir=parse_links(Ŵ)
+    dh,_,_=parse_site(Ŵ)
+    @assert dim(il)==dim(ir)
+    Dw=dim(il)
+    Rₖ₋₁=Vector{ITensor}(undef,Dw)
+    for a in 1:Dw
+        for b in 1:Dw
+            if isassigned(Rₖ,b) 
+                Wab=slice(Ŵ,il=>a,ir=>b)
+                is_zero=norm(Wab)==0.0
+                is_𝕀=!is_zero && scalar(Wab*dag(δˢk))==dh
+                is_diag= a==b
+                if !is_zero && is_diag && b>1 && b<Dw
+                    if is_𝕀
+                        @error "apply_TW_left: found unit operator on the diagonal, away from the corners"
+                    else
+                        @error "apply_TW_left: found non-zero operator on the diagonal, away from the corners. This is not supported yet"
+                    end
+                    @show a b Wab
+                    @assert false
+                end
+                if skip_𝕀 && is_diag && is_𝕀 && a==Dw 
+                    println("Skipping unit op")
+                    continue #skip the 𝕀 op in the lower right corner
+                end
+                if !isassigned(Rₖ₋₁,a)
+                    Rₖ₋₁[a]=emptyITensor()
+                end
+                # @show Rₖ₋₁[b]
+                Rₖ₋₁[a]+=ψ′*Wab*ψ*Rₖ[b]
+                # @show   ψ′*Wab*ψ Rₖ[a]
+                @assert order(Rₖ₋₁[a])==2
+                
+            end # if R[b] assigned
+        end # for b
+    end # for a
+    return Rₖ₋₁
+end
+
+function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
+    ψ′ =dag(ψ)'
     l = linkinds(only, ψ.AL)
-    # l′ = linkinds(only, ψ′.AL)
     r = linkinds(only, ψ.AR)
-    # r′ = linkinds(only, ψ′.AR)
     s = siteinds(only, ψ)
     δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
     δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
-    # δˡ(kk) = δ(l[kk], l′[kk])
-    # δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
-
+    δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
     il,ir=ITensorMPOCompression.parse_links(H[1])
     @assert dim(il)==dim(ir)
     Dw=dim(il)
     N=nsites(ψ)
-    L=Vector{CelledVector{ITensor}}(undef,Dw)
-    #L = [CelledVector{ITensor}(undef, N) for w in 1:Dw] #yields Vector{CelledVector{ITensor, typeof(translatecelltags)}}
-    R=Vector{CelledVector{ITensor}}(undef,Dw)
-    YL=Vector{CelledVector{ITensor}}(undef,Dw)
-    YR=Vector{CelledVector{ITensor}}(undef,Dw)
-    for a in 1:Dw
-        L[a]=CelledVector{ITensor}(undef,N)
-        R[a]=CelledVector{ITensor}(undef,N)
-    end
-    for k in 1:N
-        L[Dw][k]=δˡ(k)
-        R[1][k]=δʳ(k)
-        #@show k inds(L[Dw][k]) inds(R[1][k])
-    end
-
-
-    for a in 2:Dw
-        b=Dw-a+1
-        YL[b]=calculate_YLs(L,H,ψ.AL,b)
-        YR[a]=calculate_YRs(R,H,ψ.AR,a)
-        for k in 1:N
-            #@show k b inds(YL[b][k])
-            #@show k a inds(YR[a][k])
-            #
-            #  Diagonal for L
-            #
-            il,ir=ITensorMPOCompression.parse_links(H[k])
-            Wbb=slice(H[k],il=>b,ir=>b)
-            nWbb=scalar(Wbb*Wbb)
-            if nWbb==0
-                L[b][k]=YL[b][k]
-            elseif nWbb==dim(s[k])
-                #@show YL[b]
-                BLk=calculate_BL(YL[b],ψ.AL,k)
-                #@show BLk
-                #@show k b YL[b] BLk
-                A = ALk(ψ, k)
-                L[b][k], info = linsolve(A, BLk, 1, -1; tol=tol)
-            else
-                @show k b nWbb s[k] Wbb
-                @assert false
-            end
-            #
-            #  Diagonal for R
-            #
-            il,ir=ITensorMPOCompression.parse_links(H[k])
-            Waa=slice(H[k],il=>a,ir=>a)
-            nWaa=scalar(Waa*Waa)
-            if nWaa==0
-                R[a][k-1]=YR[a][k]
-            elseif nWaa==dim(s[k]) #We hit a unit op on the diagonal.
-                BRk=calculate_BR(YR[a],ψ.AR,k)
-                # @show inds(BRk)
-                A = ARk(ψ, k)
-                R[a][k-1], info=linsolve(A, BRk, 1, -1; tol=tol)
-            else
-                @show k a nWaa s[k] Waa
-                @assert false
-            end
-            # @show k-1 inds(R[a][k-1])
+    R₁=Vector{ITensor}(undef,Dw)
+    
+    #
+    #  Solve for k=1
+    #
+    R₁[1]=δʳ(1) #right eigen vector of TR 
+    for b1 in 2:Dw 
+        #
+        #  Load up all the know tensors from 1 to b1-1.  Also translate one unit to the right.
+        #
+        Rₖ=Vector{ITensor}(undef,Dw)
+        for b in 1:b1-1
+            @assert isassigned(R₁,b) 
+            Rₖ[b]=translatecell(translator(ψ), R₁[b], 1)
         end
+        #
+        #  Loop throught the unit cell and apply Tᵂₗ
+        #
+        for k in N+1:-1:2
+            Rₖ=apply_TW_right(Rₖ,H[k],ψ.AR[k],δˢ(k);skip_𝕀=false)
+        end # for k
+        @assert isassigned(Rₖ,b1) 
+        R₁[b1]=Rₖ[b1] #save the new value.
+    end #for b1
+    
+    localL = ψ.C[1] * δˡ(1) * dag(prime(ψ.C[1]))
+    eᵣ=[0.0]
+    eᵣ[1] = (localL * R₁[Dw])[]
+    # @show localL array.(R₁) eᵣ[1]
+    R₁[Dw] += -(eᵣ[1] * denseblocks(δʳ(1)))
+    A = ARk(ψ, 1)
+    R₁[Dw], info = linsolve(A, R₁[Dw], 1, -1; tol=tol)
 
+    vN=[[emptyITensor() for n in 1:Dw] for n in 1:N]
+    R=CelledVector{Vector{ITensor}}(vN,translatecell)
+    R[1]=R₁
+
+    #
+    #  Now sweep leftwards through the cell and evalaute all the R[k] form R[1]
+    #
+    for k in N:-1:2
+        R[k]=apply_TW_right(R[k+1],H[k+1],ψ.AR[k+1],δˢ(k+1))
     end
-    for k=1:N
-       el=scalar(L[1][k]*YL[1][k])
-    #    @show inds(R[Dw][k]) inds(YR[Dw][k])
-       er=scalar(R[Dw][k]*YR[Dw][k+1])
-       @show el er
+    #
+    #  Verify that we get R[1] back from R[2]
+    #
+    # @show inds.(R[2])  inds(ψ.AR[2]) inds(H[2])
+    R₁=apply_TW_right(R[2],H[2],ψ.AR[2],δˢ(2))
+    for b in 1:Dw-1 #We know that R₁[Dw] is wrong
+        if norm(R₁[b]-R[1][b])!=0.0
+            @show R₁[b] R[1][b]
+            @assert  false
+        end
     end
 
-    return L,R
+    return R,eᵣ[1]
 end
+
 expected_eₗ=[0.25,-0.5,-0.25,-1.0,-0.75,-1.5,-1.25,-2]
 
 let 
     println("----------------------------------------------")
     initstate(n) = isodd(n) ? "↑" : "↓"
-    for N in 2:8
+    for N in 1:8
         s = siteinds("S=1/2", N; conserve_qns=false)
         si = infsiteinds(s)
         ψ = InfMPS(si, initstate)
+
+
+        Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
+        L,eₗ=left_environment(Hm,ψ) #Loic's version
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        R,eᵣ=right_environment(Hm,ψ) #Loic's version
+        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+
+
         H = InfiniteMPO(Model("heisenberg"), si)
         L,eₗ=left_environment(H,ψ)
         @assert abs(eₗ-expected_eₗ[N])<1e-15
+        R,eᵣ=right_environment(H,ψ)
+        @assert abs(eᵣ-expected_eₗ[N])<1e-15
         
         Hc=orthogonalize(H)
         L,eₗ=left_environment(Hc.AL,ψ)
         @assert abs(eₗ-expected_eₗ[N])<1e-15
         L,eₗ=left_environment(Hc.AR,ψ)
         @assert abs(eₗ-expected_eₗ[N])<1e-15
+        R,eᵣ=right_environment(Hc.AL,ψ)
+        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+        R,eᵣ=right_environment(Hc.AR,ψ)
+        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+
 
         Hc,BondSpectrums = truncate(H) 
         L,eₗ=left_environment(Hc.AL,ψ)
         @assert abs(eₗ-expected_eₗ[N])<1e-15
         L,eₗ=left_environment(Hc.AR,ψ)
         @assert abs(eₗ-expected_eₗ[N])<1e-15
+        R,eᵣ=right_environment(Hc.AL,ψ)
+        @assert abs(eᵣ-expected_eₗ[N])<1e-15
+        R,eᵣ=right_environment(Hc.AR,ψ)
+        @assert abs(eᵣ-expected_eₗ[N])<1e-15
 
-        #@show array.(L)
-        Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
-        L,eₗ=left_environment(Hm,ψ) #Loic's version
-        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        # #@show array.(L)
+        
         
     end
 
