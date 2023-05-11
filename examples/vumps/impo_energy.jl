@@ -7,7 +7,7 @@ using Random
 Random.seed!(1234)
 
 import ITensorInfiniteMPS: left_environment, right_environment, translatecell
-import ITensorMPOCompression: slice, parse_links
+import ITensorMPOCompression: slice, parse_links, parse_site
 
 function translatecell(translator::Function, V::Vector{ITensor}, n::Integer)
     if n==0
@@ -195,142 +195,138 @@ function (A::ARk)(x)
     return xT-xL
 end
 
-function apply_TW(L::Vector{CelledVector{ITensor}},R::Vector{CelledVector{ITensor}},H::InfiniteMPO,ψ::InfiniteCanonicalMPS)
-    ψ′ =dag(ψ)'
-    l = linkinds(only, ψ.AL)
-    r = linkinds(only, ψ.AR)
-    s = siteinds(only, ψ)
-    δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
-    δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
+# function apply_TW(L::Vector{CelledVector{ITensor}},R::Vector{CelledVector{ITensor}},H::InfiniteMPO,ψ::InfiniteCanonicalMPS)
+#     ψ′ =dag(ψ)'
+#     l = linkinds(only, ψ.AL)
+#     r = linkinds(only, ψ.AR)
+#     s = siteinds(only, ψ)
+#     δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
+#     δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
 
 
-    Dw=size(L,1)
-    N=size(L[Dw],1)
-    L1=Vector{CelledVector{ITensor}}(undef,Dw)
-    R1=Vector{CelledVector{ITensor}}(undef,Dw)
-    for a in 1:Dw
-        L1[a]=CelledVector{ITensor}(undef,N)
-        R1[a]=CelledVector{ITensor}(undef,N)
-    end
-    for k in 1:N
-        il,ir=ITensorMPOCompression.parse_links(H[k])
-        for b in 1:Dw
-            Wbb=slice(H[k],il=>b,ir=>b)
+#     Dw=size(L,1)
+#     N=size(L[Dw],1)
+#     L1=Vector{CelledVector{ITensor}}(undef,Dw)
+#     R1=Vector{CelledVector{ITensor}}(undef,Dw)
+#     for a in 1:Dw
+#         L1[a]=CelledVector{ITensor}(undef,N)
+#         R1[a]=CelledVector{ITensor}(undef,N)
+#     end
+#     for k in 1:N
+#         il,ir=ITensorMPOCompression.parse_links(H[k])
+#         for b in 1:Dw
+#             Wbb=slice(H[k],il=>b,ir=>b)
          
-            L1[b][k]=L[b][k-1]*ψ′.AL[k]*Wbb*ψ.AL[k]
+#             L1[b][k]=L[b][k-1]*ψ′.AL[k]*Wbb*ψ.AL[k]
            
-            # b==1 && @show L1[b][k] 
-            for a in b+1:Dw
-                Wab=slice(H[k],il=>a,ir=>b)
-                L1[b][k]+=L[a][k-1]*ψ′.AL[k]*Wab*ψ.AL[k]
-                # b==1 && @show a L1[b][k] 
-                #@show a b Wab il ir L1[b][k] ψ′.AL[k]*Wab*ψ.AL[k]
-            end
-        end
-        for a in 1:Dw
-            Waa=slice(H[k],il=>a,ir=>a)
-            R1[a][k-1]=R[a][k]*ψ′.AR[k]*Waa*ψ.AR[k]
-            if scalar(Waa*Waa)==dim(s[k]) && a>1
-                Lk=ψ.C[k] * (ψ′.C[k]*δˡ(k))
-                𝕀k=denseblocks(δʳ(k))
-                # @show a R1[a][k-1] R[a][k-1]*Lk*𝕀k
-                R1[a][k-1]-=R[a][k-1]*Lk*𝕀k
-            end
-            for b in 1:a-1
-                Wab=slice(H[k],il=>a,ir=>b)
-                R1[a][k-1]+=R[b][k]*ψ′.AR[k]*Wab*ψ.AR[k]
-            end
-        end
-    end
-    for k in 1:N
-        il,ir=ITensorMPOCompression.parse_links(H[k])
-        for b in 1:Dw
-            Wbb=slice(H[k],il=>b,ir=>b)
-            if scalar(Wbb*Wbb)==dim(s[k]) && b<Dw
-                # @show k L1[b][k] L[b][k]
-                Rk=ψ.C[k] * (ψ′.C[k] * δʳ(k))
-                𝕀k=denseblocks(δˡ(k))
-                #@show Rk*𝕀k
-                L1[b][k]-=L[b][k]*Rk*𝕀k
-                # @show  L1[b][k]
-            end
-        end
-    end
-    return L1,R1
+#             # b==1 && @show L1[b][k] 
+#             for a in b+1:Dw
+#                 Wab=slice(H[k],il=>a,ir=>b)
+#                 L1[b][k]+=L[a][k-1]*ψ′.AL[k]*Wab*ψ.AL[k]
+#                 # b==1 && @show a L1[b][k] 
+#                 #@show a b Wab il ir L1[b][k] ψ′.AL[k]*Wab*ψ.AL[k]
+#             end
+#         end
+#         for a in 1:Dw
+#             Waa=slice(H[k],il=>a,ir=>a)
+#             R1[a][k-1]=R[a][k]*ψ′.AR[k]*Waa*ψ.AR[k]
+#             if scalar(Waa*Waa)==dim(s[k]) && a>1
+#                 Lk=ψ.C[k] * (ψ′.C[k]*δˡ(k))
+#                 𝕀k=denseblocks(δʳ(k))
+#                 # @show a R1[a][k-1] R[a][k-1]*Lk*𝕀k
+#                 R1[a][k-1]-=R[a][k-1]*Lk*𝕀k
+#             end
+#             for b in 1:a-1
+#                 Wab=slice(H[k],il=>a,ir=>b)
+#                 R1[a][k-1]+=R[b][k]*ψ′.AR[k]*Wab*ψ.AR[k]
+#             end
+#         end
+#     end
+#     for k in 1:N
+#         il,ir=ITensorMPOCompression.parse_links(H[k])
+#         for b in 1:Dw
+#             Wbb=slice(H[k],il=>b,ir=>b)
+#             if scalar(Wbb*Wbb)==dim(s[k]) && b<Dw
+#                 # @show k L1[b][k] L[b][k]
+#                 Rk=ψ.C[k] * (ψ′.C[k] * δʳ(k))
+#                 𝕀k=denseblocks(δˡ(k))
+#                 #@show Rk*𝕀k
+#                 L1[b][k]-=L[b][k]*Rk*𝕀k
+#                 # @show  L1[b][k]
+#             end
+#         end
+#     end
+#     return L1,R1
+# end
+
+function apply_TW_left(Lₖ₋₁::Vector{ITensor},Ŵ::ITensor,ψ::ITensor)
+    ψ′ =dag(ψ)'
+    il,ir=parse_links(Ŵ)
+    dh,_,_=parse_site(Ŵ)
+    @assert dim(il)==dim(ir)
+    Dw=dim(il)
+    Lₖ=Vector{ITensor}(undef,Dw)
+    for b in Dw:-1:1
+        for a in Dw:-1:b
+            if isassigned(Lₖ₋₁,a) 
+                Wab=slice(Ŵ,il=>a,ir=>b)
+                # nab=norm(Wab)
+                W2=scalar(Wab*dag(Wab))
+                # if nab>=0.0
+                    if !isassigned(Lₖ,b)
+                        Lₖ[b]=emptyITensor()
+                    end
+                    Lₖ[b]+=Lₖ₋₁[a]*ψ′*Wab*ψ
+                    @assert order(Lₖ[b])==2
+                if W2==dh && a==b && a<Dw && a>1
+                    @show dh a b Wab
+                    @assert false
+                end #if W2>0
+            end # if L[a] assigned
+        end # for a
+    end # for b
+    return Lₖ
 end
+
 
 function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     ψ′ =dag(ψ)'
     l = linkinds(only, ψ.AL)
     r = linkinds(only, ψ.AR)
-    s = siteinds(only, ψ)
+    # s = siteinds(only, ψ)
     δʳ(kk) = δ(dag(r[kk]), prime(r[kk]))
     δˡ(kk) = δ(dag(l[kk]), prime(l[kk]))
-    dh=dim(s[1])
+    # dh=dim(s[1])
     il,ir=ITensorMPOCompression.parse_links(H[1])
     @assert dim(il)==dim(ir)
     Dw=dim(il)
     N=nsites(ψ)
-    Lₖ₋₁=Vector{ITensor}(undef,Dw)
+    # Lₖ₋₁=Vector{ITensor}(undef,Dw)
     L₁=Vector{ITensor}(undef,Dw)
     
     #
     #  Solve for k=1
     #
-    L₁[Dw]=δˡ(1)
-    #@show isdefined(Lₖ₋₁,Dw) isassigned(Lₖ₋₁,1) Lₖ₋₁
-    for b1 in Dw-1:-1:1
+    L₁[Dw]=δˡ(1) #Left eigen vector of TL (not TWL)
+    for b1 in Dw-1:-1:1 #sweep backwards from Dw-1 down.
+        #
+        #  Load up all the know tensors from b1+1 to Dw.  Also translate one unit to the left.
+        #
         Lₖ₋₁=Vector{ITensor}(undef,Dw)
         for b in Dw:-1:b1+1
             @assert isassigned(L₁,b) 
             Lₖ₋₁[b]=translatecell(translator(ψ), L₁[b], -1)
-            # @show b L₁[b]
         end
+        #
+        #  Loop throught the unit cell and apply Tᵂₗ
+        #
         for k in 2-N:1
-            Lₖ=Vector{ITensor}(undef,Dw)
-            il,ir=parse_links(H[k])
-            for b in Dw:-1:1
-                for a in Dw:-1:b
-                    if isassigned(Lₖ₋₁,a) 
-                        Wab=slice(H[k],il=>a,ir=>b)
-                        
-                        nab=norm(Wab)
-                        W2=scalar(Wab*dag(Wab))
-                        if nab>0
-                        # @show Wab nab W2
-                        end
-                        if nab>=0.0
-                            if !isassigned(Lₖ,b)
-                                Lₖ[b]=emptyITensor()
-                            end
-                            # if b==4 && nab>0
-                            #     @show k,b,a Lₖ[b] Lₖ₋₁[a]
-                            # end
-                            Lₖ[b]+=Lₖ₋₁[a]*ψ′.AL[k]*Wab*ψ.AL[k]
-                            # if nab>0
-                            #     @show a b Lₖ[b] Wab
-                            #     println("---------------")
-                            # end
-                            # if order(Lₖ[b])!=2
-                            #     @show k,b,a inds(Lₖ[b]) inds(Lₖ₋₁[a])
-                            # end
-                            @assert order(Lₖ[b])==2
-                            # @show order(Lₖ[b]) inds(Lₖ[b])
-                        elseif W2==dh
-                            @show k a b
-                            @assert false
-                        end #if W2>0
-                    end # if L[a] assigned
-                end # for a
-            end # for b
-            Lₖ₋₁=Lₖ
-            # @show inds(Lₖ₋₁[Dw])
+            Lₖ₋₁=apply_TW_left(Lₖ₋₁,H[k],ψ.AL[k])
         end # for k
-        # @show b1 Lₖ₋₁
         @assert isassigned(Lₖ₋₁,b1) 
-        L₁[b1]=Lₖ₋₁[b1]
-        #@show inds(L₁[b1])
+        L₁[b1]=Lₖ₋₁[b1] #save the new value.
     end #for b1
+
     # @show array.(L₁) inds.(L₁)
     localR = ψ.C[1] * δʳ(1) * ψ′.C[1] #to revise
     # @show localR
@@ -341,54 +337,25 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     A = ALk(ψ, 1)
     L₁[1], info = linsolve(A, L₁[1], 1, -1; tol=tol)
 
-    # v=[emptyITensor() for n in 1:Dw]
     vN=[[emptyITensor() for n in 1:Dw] for n in 1:N]
     L=CelledVector{Vector{ITensor}}(vN,translatecell)
     L[1]=L₁
 
+    #
+    #  Now sweep throught the cell and evlaute all the L[k] form L[1]
+    #
     for k in 2:N
-        il,ir=parse_links(H[k])
-        for b in 1:Dw
-            # L[k][b]=emptyITensor()
-            # @show L[k-1]
-            for a in 1:Dw
-                # @show inds(L[k-1][a])
-                
-                @assert order(L[k-1][a])==2
-                Wab=slice(H[k],il=>a,ir=>b)
-                nab=norm(Wab)
-                # if nab>0.0
-                    #@show inds(L[k-1][a]) inds(ψ′.AL[k]*Wab*ψ.AL[k]) inds(L[k][b])
-                    L[k][b]+=L[k-1][a]*ψ′.AL[k]*Wab*ψ.AL[k]
-                    if order(L[k][b])!=2
-                        @show nab L[k-1][a]*ψ′.AL[k]*Wab*ψ.AL[k] L[k][b]
-                    end
-                    @assert order(L[k][b])==2
-                # end
-            end
-        end
-        # @show inds.(L[k])
+        L[k]=apply_TW_left(L[k-1],H[k],ψ.AL[k])
     end
-    L₁=[emptyITensor() for n in 1:Dw]
-    il,ir=parse_links(H[1])
-    for b in 1:Dw
-        for a in 1:Dw
-            Wab=slice(H[1],il=>a,ir=>b)
-            nab=norm(Wab)
-            if nab>0.0 
-                #@show L₁[b] L[0][a]
-                L₁[b]+=L[0][a]*ψ′.AL[1]*Wab*ψ.AL[1]
-                @assert order(L₁[b])==2
-            end
-        end
-        # @show inds(L[1][b]) inds(L₁[b]) inds(translatecell(translator(ψ), L₁[b], 0)) 
-        if norm(L₁[b]-L[1][b])>0.0
-        # @show b L₁[b] L[1][b]
-       end
+    #
+    #  Verify that we get L[1] back from L[0]
+    #
+    L₁=apply_TW_left(L[0],H[1],ψ.AL[1])
+    for b in 2:Dw #We know that L₁[1] is wrong
+        @assert  norm(L₁[b]-L[1][b])==0.0
     end
-    
 
-    return L
+    return L,eₗ[1]
 end
 
 function environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
@@ -479,14 +446,38 @@ function environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
 
     return L,R
 end
+expected_eₗ=[0.25,-0.5,-0.25,-1.0,-0.75,-1.5,-1.25,-2]
 
 let 
     println("----------------------------------------------")
     initstate(n) = isodd(n) ? "↑" : "↓"
-    N=1
-    s = siteinds("S=1/2", N; conserve_qns=false)
-    si = infsiteinds(s)
-    ψ = InfMPS(si, initstate)
+    for N in 1:8
+        s = siteinds("S=1/2", N; conserve_qns=false)
+        si = infsiteinds(s)
+        ψ = InfMPS(si, initstate)
+        H = InfiniteMPO(Model("heisenberg"), si)
+        L,eₗ=left_environment(H,ψ)
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        
+        Hc=orthogonalize(H)
+        L,eₗ=left_environment(Hc.AL,ψ)
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        L,eₗ=left_environment(Hc.AR,ψ)
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+
+        Hc,BondSpectrums = truncate(H) 
+        L,eₗ=left_environment(Hc.AL,ψ)
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+        L,eₗ=left_environment(Hc.AR,ψ)
+        @assert abs(eₗ-expected_eₗ[N])<1e-15
+
+        #@show array.(L)
+    end
+
+    # Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
+    # L,el=left_environment(Hm,ψ)
+    # @show array.(L[1])  el
+
     # ψ = InfiniteMPS(s;space=2)
     # for n in 1:N
     #     ψ[n] = randomITensor(inds(ψ[n]))
@@ -496,19 +487,6 @@ let
     #     @show norm(ψ.AL[n]*ψ.C[n] - ψ.C[n-1]*ψ.AR[n])
     # end
     # @show inds(ψ.AL[1]) inds(ψ.AR[1])
-
-    H = InfiniteMPO(Model("heisenberg"), si)
-    # Hc,BondSpectrums = truncate(H) #Use default cutoff,C is now diagonal
-    Hc=orthogonalize(H)
-    pprint(Hc.AL[1])
-    L=left_environment(Hc.AL,ψ)
-    #@show array.(L)
-
-    # Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
-    # L,el=left_environment(Hm,ψ)
-    # @show array.(L[1])  el
-
-    
     # R,er=right_environment(Hm,ψ)
     # @show R[1] R[2] er
     #ψ = tdvp(Hm, ψ; vumps_kwargs...)
