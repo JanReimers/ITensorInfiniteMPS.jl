@@ -167,11 +167,17 @@ function generate_twobody_nullspace(
   k, k2 = b
   @assert k2==k+1
   #
-  #  TODO: We should calculate the enviroments once outside the loop of k.
-  #        This wil be easier once the InfiniteSum{} support is removed
+  #  TODO: We should calculate the enviroments once outside the loop over k.
+  #        This might be easier if the InfiniteSum{} support is removed
   #
   L, _ = left_environment(H, ψ)
   R, _ = right_environment(H, ψ)
+  #
+  #  Is there any reason the break these up?
+  #
+  #  Could do:
+  #     ψH2 = (L[k-1]*H[k])*ψ.AL[k]*ψ.C[k]*ψ.AR[k+1]*(H[k+1]*R[k+1])
+  #
   A2L=L[k-1]*ψ.AL[k]*ψ.C[k]*H[k]
   @assert order(A2L)==4
   A2R=ψ.AR[k+1]*H[k+1]*R[k+1]

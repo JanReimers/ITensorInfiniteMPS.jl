@@ -66,13 +66,13 @@ function (A::ARk)(x)
         #     TL*=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
         # end
     end
-    L=ψ.C[k] * (ψ′.C[k]*δˡ(k))
+    R=ψ.C[k] * (ψ′.C[k]*δˡ(k))
     𝕀=denseblocks(δʳ(k))
 
-    xL=𝕀*L*x # |𝕀)(L|x)
-    #@show TL 𝕀*L
+    xR=x*R*𝕀 # (x|R)(𝕀|
+    # @show xT R xR
 
-    return xT-xL
+    return xT-xR
 end
 
 #
@@ -158,6 +158,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
             @assert  false
         end
     end
+    assign!(L[1],slice(L₁,il=>1),il=>1)
 
     return L,eₗ
 end
@@ -198,11 +199,14 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     #
     YR_Dw=slice(R₁,ir=>Dw)   
     L = ψ.C[1] * δˡ(1) * dag(ψ.C[1]') # (L|
+    # @show L YR_Dw
     𝕀 =  denseblocks(δʳ(1)) # |𝕀)
     eᵣ = scalar(L*YR_Dw) #Get energy for whole unit cell ... before  YL₁ get modified
     YR_Dw = YR_Dw - 𝕀 * eᵣ
     A = ARk(ψ, 1)
+    # @show YR_Dw
     R₁Dw, info = linsolve(A, YR_Dw, 1, -1; tol=tol)
+    # @show R₁Dw
     assign!(R₁,R₁Dw,ir=>Dw)
     #
     #  Now sweep leftwards through the cell and evalaute all the R[k] form R[1]
@@ -224,6 +228,15 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
             @assert  false
         end
     end
+
+    # ir2=lₕ[2]
+    # R₁Dw=slice(R[1],ir=>Dw)
+    # R₂Dw=slice(R[2],ir2=>Dw)
+    # @show 
+    # assign!(R[1],replaceinds(R₂Dw,inds(R₂Dw),inds(R₁Dw)),ir=>Dw)
+    # assign!(R[2],replaceinds(R₁Dw,inds(R₁Dw),inds(R₂Dw)),ir2=>Dw)
+    assign!(R[1],slice(R₁,ir=>Dw),ir=>Dw)
+
 
     return R,eᵣ
 end
