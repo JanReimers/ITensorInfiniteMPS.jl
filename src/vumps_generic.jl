@@ -158,7 +158,7 @@ function tdvp(
   eager=true,
   maxiter=10,
   tol=1e-8,
-  outputlevel=1,
+  outputlevel=0,
   multisite_update_alg="sequential",
   time_step,
   solver_tol=(x -> x / 100),
@@ -193,7 +193,7 @@ function tdvp(
       flush(stderr)
     end
     if ϵᵖʳᵉˢ < tol
-      println(
+      outputlevel > 0 && println(
         "Precision error $ϵᵖʳᵉˢ reached tolerance $tol, stopping VUMPS after $iter iterations (of a maximum $maxiter).",
       )
       flush(stdout)
@@ -221,10 +221,11 @@ function vumps(
   eigsolve_tol=(x -> x / 100),
   solver_tol=eigsolve_tol,
   eager=true,
+  outputlevel=0,
   kwargs...,
 )
   @assert isinf(time_step) && time_step < 0
-  println("Using VUMPS solver with time step $time_step")
+  outputlevel>0 && println("Using VUMPS solver with time step $time_step")
   flush(stdout)
   flush(stderr)
   return tdvp(
@@ -232,15 +233,15 @@ function vumps(
   )
 end
 
-function tdvp(args...; time_step, solver_tol=(x -> x / 100), eager=true, kwargs...)
+function tdvp(args...; time_step, solver_tol=(x -> x / 100), eager=true, outputlevel=0, kwargs...)
   solver = if !isinf(time_step)
-    println("Using TDVP solver with time step $time_step")
+    outputlevel>0 && println("Using TDVP solver with time step $time_step")
     flush(stdout)
     flush(stderr)
     tdvp_solver
   elseif time_step < 0
     # Call VUMPS instead
-    println("Using VUMPS solver with time step $time_step")
+    outputlevel>0 && println("Using VUMPS solver with time step $time_step")
     flush(stdout)
     flush(stderr)
     vumps_solver

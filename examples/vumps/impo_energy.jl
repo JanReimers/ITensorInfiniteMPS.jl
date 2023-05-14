@@ -6,6 +6,9 @@ using Random
 
 Random.seed!(1234)
 
+using Printf
+Base.show(io::IO, f::Float64) = @printf(io, "%1.6f", f) #dumb way to control float output
+
 import ITensorInfiniteMPS: left_environment, right_environment, vumps_solver,tdvp_iteration_sequential
 import ITensorInfiniteMPS: ALk, ARk
 # , translatecell, vumps_solver,     tdvp_iteration_sequential,H⁰,H¹,ortho_polar
@@ -13,11 +16,11 @@ import ITensorMPOCompression: assign!, slice
 
 
 vumps_kwargs = (
-    #   multisite_update_alg="sequential",
-      multisite_update_alg="parallel",
+      multisite_update_alg="sequential",
+    #   multisite_update_alg="parallel",
       tol=1e-8,
       maxiter=50,
-      outputlevel=1,
+      outputlevel=0,
       time_step=-Inf,
     )
 #
@@ -26,10 +29,11 @@ vumps_kwargs = (
 
 let 
     println("----------------------------------------------")
-    initstate(n) = isodd(n) ? "↑" : "↓"
-    N,nex=4,0
-    s = siteinds("S=1/2", N; conserve_qns=false)
-    si = infsiteinds(s)
+    # initstate(n) = isodd(n) ? "↑" : "↓"
+    initstate(n) = "↑"
+    N,nex=1,2
+    # s = siteinds("S=1/2", N; conserve_qns=false)
+    si = infsiteinds("S=1/2", N;initstate,conserve_szparity=true)
     ψ = InfMPS(si, initstate)
     # Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
     # ψ = tdvp(Hm, ψ; vumps_kwargs...)
@@ -40,12 +44,15 @@ let
     # ψ,(el,er)=ITensorInfiniteMPS.tdvp_iteration_sequential(vumps_solver,Hm,ψ;time_step=-Inf)
     # @show el er 
 
-    H = InfiniteMPO(Model("heisenberg"), si)
+    # H = InfiniteMPOMatrix(Model("heisenberg"), si)
+    H = InfiniteMPO(Model("ising"), si;J=1.0, h=1.2)
     # ψ,(el,er)=tdvp_iteration_sequential(vumps_solver,H,ψ;time_step=-Inf)
     # @show el er 
     ψ = tdvp(H, ψ; vumps_kwargs...)
-    for i in 1:4
+    for i in 1:nex
+        println("\n--------------Subspace expansion---------------\n")
         ψ = subspace_expansion(ψ, H; cutoff=1e-8,maxdim=16)
+        println("\n--------------tdvp---------------\n")
         ψ = tdvp(H, ψ; vumps_kwargs...)
     end
     # 

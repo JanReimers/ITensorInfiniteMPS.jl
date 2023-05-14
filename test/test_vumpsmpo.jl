@@ -9,7 +9,7 @@ function expect_three_site(ψ::MPS, h::ITensor, n::Int)
 end
 
 #Ref time is 21.6s with negligible compilation time
-@testset "vumpsmpo_ising" begin
+@testset "vumpsmpo_ising, H=$H_type" for  H_type in [InfiniteMPOMatrix, InfiniteMPO]
   Random.seed!(1234)
 
   model = Model("ising")
@@ -48,6 +48,7 @@ end
     conserve_qns in [true, false],
     nsites in [1, 2],
     time_step in [-Inf]
+   
 
     vumps_kwargs = (
       multisite_update_alg=multisite_update_alg,
@@ -61,7 +62,7 @@ end
     s = infsiteinds("S=1/2", nsites; initstate, conserve_szparity=conserve_qns)
     ψ = InfMPS(s, initstate)
 
-    Hmpo = InfiniteMPOMatrix(model, s; model_kwargs...)
+    Hmpo = H_type(model, s; model_kwargs...)
     # Alternate steps of running VUMPS and increasing the bond dimension
     ψ = tdvp(Hmpo, ψ; vumps_kwargs...)
     for _ in 1:outer_iters
@@ -85,7 +86,7 @@ end
   end
 end
 
-@testset "vumpsmpo_extendedising" begin
+@testset "vumpsmpo_extendedising, H=$H_type" for H_type in [InfiniteMPOMatrix,InfiniteMPO]
   Random.seed!(1234)
 
   model = Model"ising_extended"()
@@ -135,7 +136,7 @@ end
     s = infsiteinds("S=1/2", nsites; conserve_szparity=conserve_qns, initstate)
     ψ = InfMPS(s, initstate)
 
-    Hmpo = InfiniteMPOMatrix(model, s; model_kwargs...)
+    Hmpo = H_type(model, s; model_kwargs...)
     # Alternate steps of running VUMPS and increasing the bond dimension
     ψ = tdvp(Hmpo, ψ; vumps_kwargs...)
     for _ in 1:outer_iters
@@ -156,7 +157,7 @@ end
   end
 end
 
-@testset "vumpsmpo_extendedising_translator" begin
+@testset "vumpsmpo_extendedising_translator, H=$H_type" for H_type in [InfiniteMPOMatrix,InfiniteMPO]
   Random.seed!(1234)
 
   model = Model("ising_extended")
