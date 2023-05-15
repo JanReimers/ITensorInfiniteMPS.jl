@@ -61,8 +61,8 @@ function orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs..
   #
   #  Init gauge transform with unit matrices.
   #
-  Gs = CelledVector{ITensor}(undef, N)
-  Rs = CelledVector{ITensor}(undef, N)
+  Gs = CelledVector{ITensor}(undef, N, translator(H))
+  Rs = CelledVector{ITensor}(undef, N, translator(H))
   for n in 1:N
     ln = lr == left ? H[n].iright : dag(H[n].iright) #get the forward link index
     Gs[n] = δ(Float64, dag(ln), ln')

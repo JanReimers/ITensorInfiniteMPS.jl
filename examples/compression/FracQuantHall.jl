@@ -3,6 +3,8 @@ using ITensorMPOCompression
 using ITensorInfiniteMPS
 using Revise
 
+import ITensorInfiniteMPS: reg_form_iMPO, is_gauge_fixed, gauge_fix!
+
 N = 6
 model = Model"fqhe_2b_pot"()
 model_params = (Vs= [1.0, 1, 0.1], Ly = 6.0, prec = 1e-8)
@@ -61,49 +63,18 @@ for H in Hm
   end
 end
 
-# @show inds(removeqns(Hm[10][2,1]),tags="Link")
-# @show inds(removeqns(Hm[9][3,2]),tags="Link")
-for N in 0:15
-for ix in 1:9
-  ixp=ix+1
-  ic=commonind(Hm[N-ix][ix+1,ix],Hm[N-ixp][ixp+1,ixp])
-  @assert !isnothing(ic)
-  # @show removeqns(ic)
-end 
-end
+Hi=InfiniteMPO(Hm)
 
-#for n in 1:6
-#@show dims(Hm[n][11,10])
-#end
-# @show inds(Hm[n][5,4],tags="Link")
-# @show inds(Hm[n][4,3],tags="Link")
-# @show inds(Hm[n][3,2],tags="Link")
-# @show inds(Hm[n][2,1],tags="Link")
-#Hprod=Hm[1][6,5]*Hm[2][5,4]*Hm[3][4,3]*Hm[4][3,2]*Hm[5][2,1]*Hm[6][1,1]
+ITensors.checkflux.(Hi)
 
-#@show inds(Hprod,tags="Link") 
-#@show inds(Hprod) 
-
-
-# Hi=InfiniteMPO(Hm)
-# ITensors.checkflux.(Hi)
-
-# Hi1 = InfiniteMPO(model, s, fermion_momentum_translator; model_params...);
-# ITensors.checkflux.(Hi)
-
-# Hrf=reg_form_iMPO(Hi)
-# @test !is_gauge_fixed(Hrf)
-# @test is_regular_form(Hrf)
-# @show nsites(Hrf)
-# # for W in Hrf
-# #   pprint(W)
-# #   @show W.ileft
-# # end
-# #gauge_fix!(Hrf)
-# @show Hrf[1].ileft Hrf[N].iright
-# #Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
-
-
-
+@show get_Dw(Hi)
+Hc=orthogonalize(Hi)
+@show get_Dw(Hc.AL)
+Ht,BondSpectrums = truncate(Hi)
+@show get_Dw(Ht.AL)
+@show BondSpectrums
+Ht,BondSpectrums = truncate(Hi;cutoff=1e-10)
+@show get_Dw(Ht.AL)
+@show BondSpectrums
 
 nothing

@@ -66,7 +66,7 @@ function truncate!(
   #
   N = length(HL)
   ss = bond_spectrums(undef, N)
-  Ss = CelledVector{ITensor}(undef, N)
+  Ss = CelledVector{ITensor}(undef, N,translator(H))
   for n in 1:N
     #prime the right index of G so that indices can be distinguished when N==1.
     Gs[n] = prime(Gs[n],HR[n+1].ileft)
@@ -79,13 +79,13 @@ function truncate!(
   return HL, HR, Ss, ss 
 end
 
-function truncateG(G::ITensor, igl::Index; kwargs...)
+function truncateG(G::ITensor, igl::Index; cutoff=1e-15, kwargs...)
   @mpoc_assert order(G) == 2
   igr = noncommonind(G, igl)
   @mpoc_assert tags(igl) != tags(igr) || plev(igl) != plev(igr) #Make sure subtensr can distinguish igl and igr
   M = G[igl => 2:(dim(igl) - 1), igr => 2:(dim(igr) - 1)]
   iml, = inds(M; plev=plev(igl)) #tags are the same, so plev is the only way to distinguish.
-  U, s, V, spectrum, iu, iv = svd(M, iml; kwargs...)
+  U, s, V, spectrum, iu, iv = svd(M, iml; cutoff=cutoff,kwargs...)
   #
   # Build up U+, S+ and V+
   #
@@ -106,10 +106,4 @@ function truncateG(G::ITensor, igl::Index; kwargs...)
   return Up, Sp, Vp, spectrum
 end
 
-#
-#  Make sure indices are ordered and then convert to a matrix
-#
-# function NDTensors.matrix(il::Index, T::ITensor, ir::Index)
-#   T1 = permute(T, il, ir; allow_alias=true)
-#   return matrix(T1)
-# end
+
