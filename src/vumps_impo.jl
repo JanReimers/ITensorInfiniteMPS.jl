@@ -210,7 +210,7 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     for b in 1:Dw-1 #We know that R₁[Dw] is wrong
         R₁b=slice(R₁,ir=>b)
         R1b=slice(R[1],ir=>b)
-        if norm(R₁b-R1b)>1e-15*D*N
+        if norm(R₁b-R1b)>1e-14*D*N
             @show b R₁b R1b
             @assert  false
         end

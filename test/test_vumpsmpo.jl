@@ -8,8 +8,10 @@ function expect_three_site(ψ::MPS, h::ITensor, n::Int)
   return inner(ϕ, (apply(h, ϕ)))
 end
 
+verbose=false
+
 #Ref time is 21.6s with negligible compilation time
-@testset "vumpsmpo_ising, H=$H_type" for  H_type in [InfiniteMPOMatrix, InfiniteMPO]
+@testset verbose=true "vumpsmpo_ising, H=$H_type" for  H_type in [InfiniteMPOMatrix, InfiniteMPO]
   Random.seed!(1234)
 
   model = Model("ising")
@@ -66,10 +68,15 @@ end
     # Alternate steps of running VUMPS and increasing the bond dimension
     ψ = tdvp(Hmpo, ψ; vumps_kwargs...)
     for _ in 1:outer_iters
-      println("Subspace expansion")
-      ψ = @time subspace_expansion(ψ, Hmpo; subspace_expansion_kwargs...)
-      println("TDVP")
-      ψ = @time tdvp(Hmpo, ψ; vumps_kwargs...)
+      if verbose
+        println("Subspace expansion")
+        ψ = @time subspace_expansion(ψ, Hmpo; subspace_expansion_kwargs...)
+        println("TDVP")
+        ψ = @time tdvp(Hmpo, ψ; vumps_kwargs...)
+      else
+        ψ = subspace_expansion(ψ, Hmpo; subspace_expansion_kwargs...)
+        ψ = tdvp(Hmpo, ψ; vumps_kwargs...)      
+      end
     end
 
     @test norm(
@@ -246,3 +253,5 @@ end
     @test ITensorInfiniteMPS.translator(Hmpo) == temp_translatecell
   end
 end
+
+nothing

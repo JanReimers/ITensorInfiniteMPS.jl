@@ -367,45 +367,36 @@ function tdvp_iteration_sequential(
   _solver_tol = solver_tol(ϵᵖʳᵉˢ)
   N = nsites(ψ)
 
-  C̃ = InfiniteMPS(Vector{ITensor}(undef, N))
-  Ãᶜ = InfiniteMPS(Vector{ITensor}(undef, N))
-  Ãᴸ = InfiniteMPS(Vector{ITensor}(undef, N))
-  Ãᴿ = InfiniteMPS(Vector{ITensor}(undef, N))
+  C̃ = InfiniteMPS(N)
+  Ãᶜ = InfiniteMPS(N)
+  Ãᴸ = InfiniteMPS(N)
+  Ãᴿ = InfiniteMPS(N)
 
   eL = zeros(N)
   eR = zeros(N)
   for n in 1:N
     L, eL[n] = left_environment(H, ψ; tol=_solver_tol) #TODO currently computing two many of them
     R, eR[n] = right_environment(H, ψ; tol=_solver_tol) #TODO currently computing two many of them
-    if N == 1
-      # 0-site effective Hamiltonian
-      E0, C̃[n], info0 = solver(H⁰(L[1], R[1]), time_step, ψ.C[1], _solver_tol, eager)
-      # 1-site effective Hamiltonian
-      E1, Ãᶜ[n], info1 = solver(
-        H¹(L[0], R[1], H[1]), time_step, ψ.AL[1] * ψ.C[1], _solver_tol, eager
-      )
-      Ãᴸ[1] = ortho_polar(Ãᶜ[1], C̃[1])
-      Ãᴿ[1] = ortho_polar(Ãᶜ[1], C̃[0])
-      ψ.AL[1] = Ãᴸ[1]
-      ψ.AR[1] = Ãᴿ[1]
-      ψ.C[1] = C̃[1]
-    else
       # 0-site effective Hamiltonian
       E0, C̃[n], info0 = solver(H⁰(L[n], R[n]), time_step, ψ.C[n], _solver_tol, eager)
-      E0′, C̃[n - 1], info0′ = solver(
-        H⁰(L[n - 1], R[n-1]), time_step, ψ.C[n - 1], _solver_tol, eager
-      )
       # 1-site effective Hamiltonian
       E1, Ãᶜ[n], info1 = solver(
         H¹(L[n - 1], R[n], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
       )
+      if N>1
+        E0′, C̃[n - 1], info0′ = solver(
+          H⁰(L[n - 1], R[n-1]), time_step, ψ.C[n - 1], _solver_tol, eager
+        )
+      end
+
       Ãᴸ[n] = ortho_polar(Ãᶜ[n], C̃[n])
       Ãᴿ[n] = ortho_polar(Ãᶜ[n], C̃[n - 1])
       ψ.AL[n] = Ãᴸ[n]
       ψ.AR[n] = Ãᴿ[n]
       ψ.C[n] = C̃[n]
-      ψ.C[n - 1] = C̃[n - 1]
-    end
+      if N>1 
+         ψ.C[n - 1] = C̃[n - 1]
+      end
   end
   for n in 1:N
     ϵᴸ![n] = norm(Ãᶜ[n] - Ãᴸ[n] * C̃[n])
@@ -429,44 +420,30 @@ function tdvp_iteration_parallel(
   _solver_tol = solver_tol(ϵᵖʳᵉˢ)
   N = nsites(ψ)
 
-  C̃ = InfiniteMPS(Vector{ITensor}(undef, N))
-  Ãᶜ = InfiniteMPS(Vector{ITensor}(undef, N))
-  Ãᴸ = InfiniteMPS(Vector{ITensor}(undef, N))
-  Ãᴿ = InfiniteMPS(Vector{ITensor}(undef, N))
+  C̃ = InfiniteMPS(N)
+  Ãᶜ = InfiniteMPS(N)
+  Ãᴸ = InfiniteMPS(N)
+  Ãᴿ = InfiniteMPS(N)
 
   eL = zeros(1)
   eR = zeros(1)
   L, eL[1] = left_environment(H, ψ; tol=_solver_tol) #TODO currently computing two many of them
   R, eR[1] = right_environment(H, ψ; tol=_solver_tol) #TODO currently computing two many of them
   for n in 1:N
-    if N == 1
+    for n in 1:N
       # 0-site effective Hamiltonian
-      E0, C̃[n], info0 = solver(H⁰(L[1], R[1]), time_step, ψ.C[1], _solver_tol, eager)
+      E0, C̃[n], info0 = solver(H⁰(L[n], R[n]), time_step, ψ.C[n], _solver_tol, eager)
       # 1-site effective Hamiltonian
       E1, Ãᶜ[n], info1 = solver(
-        H¹(L[0], R[1], H[1]), time_step, ψ.AL[1] * ψ.C[1], _solver_tol, eager
+        H¹(L[n - 1], R[n], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
       )
-      Ãᴸ[1] = ortho_polar(Ãᶜ[1], C̃[1])
-      Ãᴿ[1] = ortho_polar(Ãᶜ[1], C̃[0])
-      ψ.AL[1] = Ãᴸ[1]
-      ψ.AR[1] = Ãᴿ[1]
-      ψ.C[1] = C̃[1]
-    else
-      # 0-site effective Hamiltonian
-      for n in 1:N
-        E0, C̃[n], info0 = solver(H⁰(L[n], R[n]), time_step, ψ.C[n], _solver_tol, eager)
-        E1, Ãᶜ[n], info1 = solver(
-          H¹(L[n - 1], R[n], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
-        )
-      end
-      # 1-site effective Hamiltonian
-      for n in 1:N
-        Ãᴸ[n] = ortho_polar(Ãᶜ[n], C̃[n])
-        Ãᴿ[n] = ortho_polar(Ãᶜ[n], C̃[n - 1])
-        ψ.AL[n] = Ãᴸ[n]
-        ψ.AR[n] = Ãᴿ[n]
-        ψ.C[n] = C̃[n]
-      end
+    end
+    for n in 1:N
+      Ãᴸ[n] = ortho_polar(Ãᶜ[n], C̃[n])
+      Ãᴿ[n] = ortho_polar(Ãᶜ[n], C̃[n - 1])
+      ψ.AL[n] = Ãᴸ[n]
+      ψ.AR[n] = Ãᴿ[n]
+      ψ.C[n] = C̃[n]
     end
   end
   for n in 1:N

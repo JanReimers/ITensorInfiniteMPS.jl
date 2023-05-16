@@ -12,6 +12,8 @@ mutable struct InfiniteMPS <: AbstractInfiniteMPS
   reverse::Bool
 end
 
+InfiniteMPS(N::Int64)=InfiniteMPS(Vector{ITensor}(undef, N),0,0,false)
+
 translator(ψ::InfiniteMPS) = ψ.data.translator
 #
 # InfiniteCanonicalMPS

@@ -161,31 +161,18 @@ function generate_twobody_nullspace(
   return noprime(ψH2)
 end
 
+#
+#  TODO: We should calculate the enviroments once outside the loop over k.
+#        This might be easier if the InfiniteSum{} support is removed
+#
 function generate_twobody_nullspace(
   ψ::InfiniteCanonicalMPS, H::InfiniteMPO, b::Tuple{Int,Int}; atol=1e-2
 )
   k, k2 = b
   @assert k2==k+1
-  #
-  #  TODO: We should calculate the enviroments once outside the loop over k.
-  #        This might be easier if the InfiniteSum{} support is removed
-  #
   L, _ = left_environment(H, ψ)
   R, _ = right_environment(H, ψ)
-  #
-  #  Is there any reason the break these up?
-  #
-  #  Could do:
-  #     ψH2 = (L[k-1]*H[k])*ψ.AL[k]*ψ.C[k]*ψ.AR[k+1]*(H[k+1]*R[k+1])
-  #
-  A2L=L[k-1]*ψ.AL[k]*ψ.C[k]*H[k]
-  @assert order(A2L)==4
-  A2R=ψ.AR[k+1]*H[k+1]*R[k+1]
-  @assert order(A2R)==4
-  ψH2=A2L*A2R
-  @assert order(ψH2)==4
-
-  return noprime(ψH2)
+  return noprime((L[k-1]*H[k])*ψ.AL[k]*ψ.C[k]*ψ.AR[k+1]*(H[k+1]*R[k+1]))
 end
 # atol controls the tolerance cutoff for determining which eigenvectors are in the null
 # space of the isometric MPS tensors. Setting to 1e-2 since we only want to keep
