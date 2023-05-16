@@ -301,6 +301,12 @@ function right_environment(H::InfiniteMPOMatrix, ψ::InfiniteCanonicalMPS; tol=1
       Rs[n] = apply_local_right_transfer_matrix(Rs[n + 1], H, ψ, n)
     end
   end
+  
+  R1=translatecell(translator(ψ), Rs[1], 1)
+  for n in 1:N-1
+    Rs[n]=Rs[n+1]
+  end
+  Rs[N]=R1
   return CelledVector(Rs), eᵣ[1]
 end
 
@@ -348,7 +354,7 @@ end
 
 function tdvp_iteration_sequential(
   solver::Function,
-  H::InfiniteMPOMatrix,
+  H::AbstractInfiniteMPS,
   ψ::InfiniteCanonicalMPS;
   (ϵᴸ!)=fill(1e-15, nsites(ψ)),
   (ϵᴿ!)=fill(1e-15, nsites(ψ)),
@@ -373,10 +379,10 @@ function tdvp_iteration_sequential(
     R, eR[n] = right_environment(H, ψ; tol=_solver_tol) #TODO currently computing two many of them
     if N == 1
       # 0-site effective Hamiltonian
-      E0, C̃[n], info0 = solver(H⁰(L[1], R[2]), time_step, ψ.C[1], _solver_tol, eager)
+      E0, C̃[n], info0 = solver(H⁰(L[1], R[1]), time_step, ψ.C[1], _solver_tol, eager)
       # 1-site effective Hamiltonian
       E1, Ãᶜ[n], info1 = solver(
-        H¹(L[0], R[2], H[1]), time_step, ψ.AL[1] * ψ.C[1], _solver_tol, eager
+        H¹(L[0], R[1], H[1]), time_step, ψ.AL[1] * ψ.C[1], _solver_tol, eager
       )
       Ãᴸ[1] = ortho_polar(Ãᶜ[1], C̃[1])
       Ãᴿ[1] = ortho_polar(Ãᶜ[1], C̃[0])
@@ -385,13 +391,13 @@ function tdvp_iteration_sequential(
       ψ.C[1] = C̃[1]
     else
       # 0-site effective Hamiltonian
-      E0, C̃[n], info0 = solver(H⁰(L[n], R[n + 1]), time_step, ψ.C[n], _solver_tol, eager)
+      E0, C̃[n], info0 = solver(H⁰(L[n], R[n]), time_step, ψ.C[n], _solver_tol, eager)
       E0′, C̃[n - 1], info0′ = solver(
-        H⁰(L[n - 1], R[n]), time_step, ψ.C[n - 1], _solver_tol, eager
+        H⁰(L[n - 1], R[n-1]), time_step, ψ.C[n - 1], _solver_tol, eager
       )
       # 1-site effective Hamiltonian
       E1, Ãᶜ[n], info1 = solver(
-        H¹(L[n - 1], R[n + 1], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
+        H¹(L[n - 1], R[n], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
       )
       Ãᴸ[n] = ortho_polar(Ãᶜ[n], C̃[n])
       Ãᴿ[n] = ortho_polar(Ãᶜ[n], C̃[n - 1])
@@ -410,7 +416,7 @@ end
 
 function tdvp_iteration_parallel(
   solver::Function,
-  H::InfiniteMPOMatrix,
+  H::AbstractInfiniteMPS,
   ψ::InfiniteCanonicalMPS;
   (ϵᴸ!)=fill(1e-15, nsites(ψ)),
   (ϵᴿ!)=fill(1e-15, nsites(ψ)),
@@ -435,10 +441,10 @@ function tdvp_iteration_parallel(
   for n in 1:N
     if N == 1
       # 0-site effective Hamiltonian
-      E0, C̃[n], info0 = solver(H⁰(L[1], R[2]), time_step, ψ.C[1], _solver_tol, eager)
+      E0, C̃[n], info0 = solver(H⁰(L[1], R[1]), time_step, ψ.C[1], _solver_tol, eager)
       # 1-site effective Hamiltonian
       E1, Ãᶜ[n], info1 = solver(
-        H¹(L[0], R[2], H[1]), time_step, ψ.AL[1] * ψ.C[1], _solver_tol, eager
+        H¹(L[0], R[1], H[1]), time_step, ψ.AL[1] * ψ.C[1], _solver_tol, eager
       )
       Ãᴸ[1] = ortho_polar(Ãᶜ[1], C̃[1])
       Ãᴿ[1] = ortho_polar(Ãᶜ[1], C̃[0])
@@ -448,9 +454,9 @@ function tdvp_iteration_parallel(
     else
       # 0-site effective Hamiltonian
       for n in 1:N
-        E0, C̃[n], info0 = solver(H⁰(L[n], R[n + 1]), time_step, ψ.C[n], _solver_tol, eager)
+        E0, C̃[n], info0 = solver(H⁰(L[n], R[n]), time_step, ψ.C[n], _solver_tol, eager)
         E1, Ãᶜ[n], info1 = solver(
-          H¹(L[n - 1], R[n + 1], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
+          H¹(L[n - 1], R[n], H[n]), time_step, ψ.AL[n] * ψ.C[n], _solver_tol, eager
         )
       end
       # 1-site effective Hamiltonian

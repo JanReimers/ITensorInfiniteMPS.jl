@@ -140,17 +140,17 @@ function generate_twobody_nullspace(
       end
     end
   end
-  temp_R = similar(R[n_1 + 2])
+  temp_R = similar(R[n_1 + 1])
   for i in 1:dₕ
     non_empty_idx = 1
     while isempty(H[n_1 + 1][i, non_empty_idx]) && non_empty_idx <= i
       non_empty_idx += 1
     end
     @assert non_empty_idx != i + 1 "Empty MPO"
-    temp_R[i] = H[n_1 + 1][i, non_empty_idx] * (ψ.AR[n_1 + 1] * R[n_1 + 2][non_empty_idx])
+    temp_R[i] = H[n_1 + 1][i, non_empty_idx] * (ψ.AR[n_1 + 1] * R[n_1 + 1][non_empty_idx])
     for j in (non_empty_idx + 1):i
       if !isempty(H[n_1 + 1][i, j])
-        temp_R[i] += H[n_1 + 1][i, j] * (ψ.AR[n_1 + 1] * R[n_1 + 2][j])
+        temp_R[i] += H[n_1 + 1][i, j] * (ψ.AR[n_1 + 1] * R[n_1 + 1][j])
       end
     end
   end
