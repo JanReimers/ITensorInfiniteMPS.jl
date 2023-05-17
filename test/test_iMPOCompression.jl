@@ -36,16 +36,16 @@ function ITensorInfiniteMPS.unit_cell_terms(::Model"hubbardNNN"; NNN::Int64)
 end
 
 function test_links(Wb1::regform_blocks,Wb2::regform_blocks)
-  @test hasinds(Wb1.𝐀̂,Wb1.irA,Wb1.icA)
-  @test hasinds(Wb1.𝐛̂,Wb1.irb,Wb1.icb)
-  @test hasinds(Wb1.𝐜̂,Wb1.irc,Wb1.icc)
-  @test hasinds(Wb1.𝐝̂,Wb1.ird,Wb1.icd)
-  @test Wb1.ird==Wb1.irc
-  @test Wb1.icd==Wb1.icb
-  @test Wb1.irA==Wb1.irb
-  @test Wb1.icA==Wb1.icc
-  @test id(Wb1.icA)==id(Wb2.irA)
-  @test dir(Wb1.icA)==dir(dag(Wb2.irA))
+  @test hasinds(Wb1.𝐀̂.W,Wb1.𝐀̂.ileft,Wb1.𝐀̂.iright)
+  @test hasinds(Wb1.𝐛̂.W,Wb1.𝐛̂.ileft,Wb1.𝐛̂.iright)
+  @test hasinds(Wb1.𝐜̂.W,Wb1.𝐜̂.ileft,Wb1.𝐜̂.iright)
+  @test hasinds(Wb1.𝐝̂.W,Wb1.𝐝̂.ileft,Wb1.𝐝̂.iright)
+  @test Wb1.𝐝̂.ileft==Wb1.𝐜̂.ileft
+  @test Wb1.𝐝̂.iright==Wb1.𝐛̂.iright
+  @test Wb1.𝐀̂.ileft==Wb1.𝐛̂.ileft
+  @test Wb1.𝐀̂.iright==Wb1.𝐜̂.iright
+  @test id(Wb1.𝐀̂.iright)==id(Wb2.𝐀̂.ileft)
+  @test dir(Wb1.𝐀̂.iright)==dir(dag(Wb2.𝐀̂.ileft))
 end
 
 function verify_links(H::InfiniteMPO)
@@ -97,7 +97,7 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
     H = ITensorInfiniteMPS.reg_form_iMPO(InfiniteMPO(model[1], sites; NNN=NNN))
     lr = ul == lower ? left : right
 
-    Wbs=extract_blocks(H,lr;fix_inds=true)
+    Wbs=extract_blocks(H,lr;Abcd=true,fix_inds=true)
     for n in 1:N-1
       test_links(Wbs[n],Wbs[n+1])
     end

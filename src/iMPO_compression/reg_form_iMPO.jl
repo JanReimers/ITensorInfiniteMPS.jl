@@ -31,30 +31,19 @@ end
     return reg_form_Op(W, ileft, iright, Wrf.ul)
   end
 
-  function translatecell(translator::Function, Wrb::regform_blocks, n::Integer)
-    𝕀=translatecell(translator,Wrb.𝕀,n)
-    Arf=translatecell(translator,reg_form_Op(Wrb.𝐀̂,Wrb.irA,Wrb.icA,lower),n)
-    brf=translatecell(translator,reg_form_Op(Wrb.𝐛̂,Wrb.irb,Wrb.icb,lower),n)
-    crf=translatecell(translator,reg_form_Op(Wrb.𝐜̂,Wrb.irc,Wrb.icc,lower),n)
-    drf=translatecell(translator,reg_form_Op(Wrb.𝐝̂,Wrb.ird,Wrb.icd,lower),n)
-    # Acrf=translatecell(translator,reg_form_Op(Wrb.𝐀̂𝐜̂,Wrb.ird,Wrb.icd,lower),n)
-    # Vrf=translatecell(translator,reg_form_Op(Wrb.𝐕̂,Wrb.ird,Wrb.icd,lower),n)
-   
-    rfb=regform_blocks()
-    rfb.𝕀=𝕀
-    rfb.𝐀̂=Arf.W
-    rfb.𝐛̂=brf.W
-    rfb.𝐜̂=crf.W
-    rfb.𝐝̂=drf.W
-    rfb.irA=Arf.ileft
-    rfb.icA=Arf.iright
-    rfb.irb=brf.ileft
-    rfb.icb=brf.iright
-    rfb.irc=crf.ileft
-    rfb.icc=crf.iright
-    rfb.ird=drf.ileft
-    rfb.icd=drf.iright
-    return rfb
+  function translatecell(tf::Function, Wrb::regform_blocks, n::Integer)
+    @assert !isnothing(Wrb.𝐀̂)
+    @assert !isnothing(Wrb.𝐛̂)
+    @assert !isnothing(Wrb.𝐜̂)
+    @assert !isnothing(Wrb.𝐝̂)
+    𝕀=translatecell(tf,Wrb.𝕀,n)
+    A=translatecell(tf,Wrb.𝐀̂,n)
+    b=translatecell(tf,Wrb.𝐛̂,n)
+    c=translatecell(tf,Wrb.𝐜̂,n)
+    d=translatecell(tf,Wrb.𝐝̂,n)
+    Ac= isnothing(Wrb.𝐀̂𝐜̂) ? nothing : translatecell(tf,Wrb.𝐀̂𝐜̂,n)
+    V= isnothing(Wrb.𝐕̂) ? nothing : translatecell(tf,Wrb.𝐕̂,n)
+    return regform_blocks(𝕀,A,b,c,d,Ac,V)
   end
   
   translator(H::reg_form_iMPO)=translator(data(H))
@@ -66,21 +55,21 @@ end
   end
 
   function fix_inds(Wb1::regform_blocks,Wb2::regform_blocks)
-    Wb1.𝐝̂=replaceind(Wb1.𝐝̂, Wb1.icd, settags(dag(Wb2.ird),tags(Wb1.icd)))
-    Wb1.icd=settags(dag(Wb2.ird),tags(Wb1.icd))
-    Wb1.𝐀̂=replaceind(Wb1.𝐀̂, Wb1.icA, settags(dag(Wb2.irA),tags(Wb1.icA)) )
-    Wb1.icA=settags(dag(Wb2.irA),tags(Wb1.icA))
+    Wb1.𝐝̂=replaceind(Wb1.𝐝̂, Wb1.𝐝̂.iright, settags(dag(Wb2.𝐝̂.ileft),tags(Wb1.𝐝̂.iright)))
+    # Wb1.icd=settags(dag(Wb2.𝐝̂.ileft),tags(Wb1.𝐝̂.iright))
+    Wb1.𝐀̂=replaceind(Wb1.𝐀̂, Wb1.𝐀̂.iright, settags(dag(Wb2.𝐀̂.ileft),tags(Wb1.𝐀̂.iright)) )
+    # Wb1.icA=settags(dag(Wb2.irA),tags(Wb1.icA))
 
-    Wb1.𝐜̂=replaceind(Wb1.𝐜̂, Wb1.icc, Wb1.icA)
-    Wb1.icc=Wb1.icA
-    Wb1.𝐜̂=replaceind(Wb1.𝐜̂, Wb1.irc, Wb1.ird)
-    Wb1.irc=Wb1.ird
-    Wb1.𝐛̂=replaceind(Wb1.𝐛̂, Wb1.irb, Wb1.irA)
-    Wb1.irb=Wb1.irA
-    Wb1.𝐛̂=replaceind(Wb1.𝐛̂, Wb1.icb, Wb1.icd)
-    Wb1.icb=Wb1.icd
+    Wb1.𝐜̂=replaceind(Wb1.𝐜̂, Wb1.𝐜̂.iright, Wb1.𝐀̂.iright)
+    # Wb1.icc=Wb1.icA
+    Wb1.𝐜̂=replaceind(Wb1.𝐜̂, Wb1.𝐜̂.ileft, Wb1.𝐝̂.ileft)
+    # Wb1.irc=Wb1.ird
+    Wb1.𝐛̂=replaceind(Wb1.𝐛̂, Wb1.𝐛̂.ileft, Wb1.𝐀̂.ileft)
+    # Wb1.irb=Wb1.irA
+    Wb1.𝐛̂=replaceind(Wb1.𝐛̂, Wb1.𝐛̂.iright, Wb1.𝐝̂.iright)
+    # Wb1.icb=Wb1.icd
     # check(reg_form_Op( Wb1.𝐀̂, Wb1.irA, Wb1.icA,lower))
-    @assert id( Wb1.icA)==id( Wb2.irA)
+    @assert id( Wb1.𝐀̂.iright)==id( Wb2.𝐀̂.ileft)
     return Wb1
   end
 
@@ -91,7 +80,7 @@ end
     for n in 1:N
       Wbs[n]=fix_inds(Wbs[n],Wbs[n+1])
       # check(reg_form_Op(Wbs[n].𝐀̂,Wbs[n].irA,Wbs[n].icA,lower))
-      @assert id(Wbs[n].icA)==id(Wbs[n+1].irA)
+      @assert id(Wbs[n].𝐀̂.iright)==id(Wbs[n+1].𝐀̂.ileft)
     end
     return Wbs
   end
@@ -132,33 +121,6 @@ end
     return InfiniteMPO(Ws(Hrf))
   end
   
-  # function to_openbc(Hrf::reg_form_iMPO)::reg_form_iMPO
-  #   N = length(Hrf)
-  #   if N > 1
-  #     l, r = get_lr(Hrf)
-  #     Hrf[1].W = l * prime(Hrf[1].W, Hrf[1].ileft)
-  #     Hrf[N].W = prime(Hrf[N].W, Hrf[N].iright) * r
-  #     @mpoc_assert length(inds(Hrf[1].W; tags="Link")) == 1
-  #     @mpoc_assert length(inds(Hrf[N].W; tags="Link")) == 1
-  #   end
-  #   return Hrf
-  # end
-  
-  # function get_lr(Hrf::reg_form_iMPO)::Tuple{ITensor,ITensor}
-  #   N = length(Hrf)
-  #   llink, rlink = linkinds(Hrf[1])
-  #   l = ITensor(0.0, dag(llink'))
-  #   r = ITensor(0.0, dag(rlink'))
-  #   if Hrf.ul == lower
-  #     l[llink' => dim(llink)] = 1.0
-  #     r[rlink' => 1] = 1.0
-  #   else
-  #     l[llink' => 1] = 1.0
-  #     r[rlink' => dim(rlink)] = 1.0
-  #   end
-  
-  #   return l, r
-  # end
   
   function ITensorMPOCompression.get_Dw(Hrf::reg_form_iMPO)
     return map(n -> dim(Hrf[n].iright), eachindex(Hrf))
