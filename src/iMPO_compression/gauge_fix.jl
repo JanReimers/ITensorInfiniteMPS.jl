@@ -4,13 +4,13 @@ using SparseArrays
 #
 #  Infinite lattice with unit cell
 #
-function gauge_fix!(H::reg_form_iMPO;kwargs...)
+function ITensorMPOCompression.gauge_fix!(H::reg_form_iMPO;kwargs...)
   @mpoc_assert H.ul==lower
   if !is_gauge_fixed(H;kwargs...)
     Wbs=extract_blocks(H,left; Abcd=true,fix_inds=true,swap_bc=true)
     sₙ, tₙ = Solve_b0c0(H,Wbs)
     for n in eachindex(H)
-      gauge_fix!(H[n],sₙ[n - 1], sₙ[n],tₙ[n - 1], tₙ[n],Wbs[n])
+      gauge_fix_Op!(H[n],sₙ[n - 1], sₙ[n],tₙ[n - 1], tₙ[n],Wbs[n])
     end
   end
 end
@@ -94,7 +94,7 @@ function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   return CelledVector(ss,translator(Hrf)),CelledVector(ts,translator(Hrf))
 end
 
-function gauge_fix!(
+function gauge_fix_Op!(
   W::reg_form_Op,
   𝒔ₙ₋₁::ITensor,
   𝒔ₙ::ITensor,

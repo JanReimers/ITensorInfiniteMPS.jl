@@ -79,7 +79,6 @@ end
     N=length(Wbs)
     for n in 1:N
       Wbs[n]=fix_inds(Wbs[n],Wbs[n+1])
-      # check(reg_form_Op(Wbs[n].𝐀̂,Wbs[n].irA,Wbs[n].icA,lower))
       @assert id(Wbs[n].𝐀̂.iright)==id(Wbs[n+1].𝐀̂.ileft)
     end
     return Wbs
@@ -89,6 +88,7 @@ end
   function Base.reverse(H::reg_form_iMPO)
     return reg_form_iMPO(Base.reverse(H.data),H.reverse, H.ul)
   end
+
   Base.iterate(H::reg_form_iMPO, args...) = iterate(H.data, args...)
   Base.getindex(H::reg_form_iMPO, n::Integer) = getindex(H.data, n)
   Base.setindex!(H::reg_form_iMPO, W::reg_form_Op, n::Integer) = setindex!(H.data, W, n)
@@ -134,34 +134,25 @@ end
     return commonind(M[j], M[j + 1])
   end
 
-  function detect_regular_form(H::AbstractInfiniteMPS;kwargs...)::Tuple{Bool,Bool}
+  function ITensorMPOCompression.detect_regular_form(H::AbstractInfiniteMPS;kwargs...)::Tuple{Bool,Bool}
     return is_regular_form(H, lower;kwargs...), is_regular_form(H, upper;kwargs...)
   end
 
-  function is_regular_form(H::AbstractInfiniteMPS, ul::reg_form;kwargs...)::Bool
+  function ITensorMPOCompression.is_regular_form(H::AbstractInfiniteMPS, ul::reg_form;kwargs...)::Bool
     il = dag(linkind(H, 0))
     for n in 1:length(H)
       ir = linkind(H, n)
-      #@show il ir inds(H[n])
       Wrf = reg_form_Op(H[n], il, ir, ul)
-      !ITensorMPOCompression.is_regular_form(Wrf;kwargs...) && return false
+      !is_regular_form(Wrf;kwargs...) && return false
       il = dag(ir)
     end
     return true
   end
-  function get_Dw(H::InfiniteMPO)::Vector{Int64}
-    N = length(H)
-    Dws = Vector{Int64}(undef, N)
-    for n in 1:N
-      l = commonind(H[n], H[n + 1])
-      Dws[n] = dim(l)
-    end
-    return Dws
-  end  
+
   #
-  #  Handles direction only.  For iMPOs we include the last site in the unit cell.
+  #  Handles direction and for iMPOs we include the last site in the unit cell.
   #
-  function sweep(H::AbstractInfiniteMPS, lr::orth_type)::StepRange{Int64,Int64}
+  function ITensorMPOCompression.sweep(H::AbstractInfiniteMPS, lr::orth_type)::StepRange{Int64,Int64}
     N = length(H)
     return lr == left ? (1:1:N) : (N:-1:1)
   end
@@ -173,7 +164,7 @@ end
     return true
   end
   
-  function is_regular_form(H::reg_form_iMPO;kwargs...)::Bool
+  function ITensorMPOCompression.is_regular_form(H::reg_form_iMPO;kwargs...)::Bool
     for W in H
       !is_regular_form(W;kwargs...) && return false
     end
