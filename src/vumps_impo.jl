@@ -49,7 +49,7 @@ function (A::ARk)(x)
     δˢ(kk) = δ(dag(s[kk]), prime(s[kk]))
 
     xT = translatecell(translator(ψ), x, 1) #xT = x shifted one unit cell to the right.
-    for k′=k+N:-1:k+1
+    for k′=k+N:-1:k+1 #TODO why backwards???
         # @show k k′ inds(ψ.AR[k′])
         xT*=ψ′.AR[k′]*δˢ(k′)*ψ.AR[k′]
         @assert order(xT)==2
