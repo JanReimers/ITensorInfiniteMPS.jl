@@ -10,7 +10,7 @@ function InfiniteCanonicalMPO(HL::reg_form_iMPO,GLR::CelledVector{ITensor},HR::r
     return InfiniteCanonicalMPO(InfiniteMPO(HL),GLR,InfiniteMPO(HR),G)
 end
 
-Base.length(H::InfiniteCanonicalMPO)=length(H.C)
+Base.length(H::InfiniteCanonicalMPO)=length(H.GLR)
 ITensors.data(H::InfiniteCanonicalMPO)=H.AL
 ITensorInfiniteMPS.isreversed(::InfiniteCanonicalMPO)=false
 Base.getindex(H::InfiniteCanonicalMPO, n::Int64)=getindex(H.AL,n)
@@ -19,21 +19,39 @@ function ITensorMPOCompression.check_ortho(H::InfiniteCanonicalMPO)::Bool
     return check_ortho(H.AL,left) && check_ortho(H.AR,right)
 end
 
+#
+#  Check the gauge transform between AR and AL
+#
 function check_gauge(H::InfiniteCanonicalMPO)::Float64
     eps2=0.0
-    for n in eachindex(H)
-        eps2+=norm(H.GLR[n - 1] * H.AR[n] - H.AL[n] * H.GLR[n])^2
+    for k in eachindex(H)
+        eps2+=norm(H.GLR[k - 1] * H.AR[k] - H.AL[k] * H.GLR[k])^2
     end
     return sqrt(eps2)
 end
 
+#
+#  Check the gauge transform between AR and H0 (the raw unmodified Hamiltonian)
+#
+function check_gauge(H::InfiniteCanonicalMPO,H0::InfiniteMPO)::Float64
+    eps2=0.0
+    for k in eachindex(H)
+        eps2+=norm(H.G[k - 1] * H.AR[k] - H0[k] * H.G[k])^2
+    end
+    # @show norm(Ho.G[0]*Ho.AR[1]-H[1]*Ho.G[1])
+    return sqrt(eps2)
+end
+
 function ITensors.orthogonalize(Hi::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
-    HL=reg_form_iMPO(Hi) #not HL yet, but will be after two ortho calls.
-    # H0=copy(HL)
+    HL,GLR,HR,G=orthogonalize(reg_form_iMPO(Hi),kwargs...)
+    return InfiniteCanonicalMPO(HL,GLR,HR,G)
+end
+function ITensors.orthogonalize(Hi::reg_form_iMPO;kwargs...)
+    HL=copy(Hi) #not HL yet, but will be after two ortho calls.
     GL=orthogonalize!(HL, left; kwargs...)
     HR = copy(HL)
     GR = orthogonalize!(HR,right; kwargs...)
-    return InfiniteCanonicalMPO(HL,GR,HR,full_ortho_gauge(GL,GR))
+    return HL,GR,HR,full_ortho_gauge(GL,GR)
 end
 
 #
@@ -45,7 +63,11 @@ function full_ortho_gauge(GL::CelledVector{ITensor},GR::CelledVector{ITensor})
     N=length(GL)
     G=CelledVector{ITensor}(undef,N)
     for k in 1:N
-        GL_inv=ITensor(transpose(pinv(array(GL[k]))),inds(GL[k])) #Penrose inverse for rectangular.
+        #TODO: use linsolve GL(k) * G[k] = GR[k] for G[k]
+        GLa_inv=sparse(transpose(pinv(array(GL[k]))))
+        droptol!(GLa_inv, 1e-13)
+        # @show GLa_inv
+        GL_inv=ITensor(GLa_inv,inds(dag(GL[k]))) #Penrose inverse for rectangular.
         G[k]=GL_inv*GR[k]
         @assert order(G[k])==2
     end
@@ -53,6 +75,6 @@ function full_ortho_gauge(GL::CelledVector{ITensor},GR::CelledVector{ITensor})
 end
 
 function ITensors.truncate(Hi::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
-    HL, HR, Ss, ss = truncate!(reg_form_iMPO(Hi);kwargs...)
-    return InfiniteCanonicalMPO(HL,Ss,HR,Ss),ss
+    HL, HR, Ss, Gfull, ss = truncate!(reg_form_iMPO(Hi);kwargs...)
+    return InfiniteCanonicalMPO(HL,Ss,HR,Gfull),ss
 end

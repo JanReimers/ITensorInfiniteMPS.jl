@@ -112,7 +112,7 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
       sites = infsiteinds(model[2], Ncell; initstate, conserve_qns=qns)
       Hi = InfiniteMPO(model[1], sites;NNN=NNN)
 
-      Ho::InfiniteCanonicalMPO = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
+      Ho = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
       @test check_ortho(Ho) #AL is left ortho && AR is right ortho
       @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
 
@@ -128,7 +128,7 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
       si = infsiteinds(n->isodd(n) ? "S=1" : "S=1/2",Ncell; initstate, conserve_qns=qns)
       Hi = InfiniteMPO(Model"heisenbergNNN"(), si;NNN=NNN)
 
-      Ho::InfiniteCanonicalMPO = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
+      Ho = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
       @test check_ortho(Ho) #AL is left ortho && AR is right ortho
       @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
 

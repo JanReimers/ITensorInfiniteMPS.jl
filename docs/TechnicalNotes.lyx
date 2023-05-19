@@ -612,7 +612,7 @@ G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k
 
 \begin_inset Formula 
 \begin{equation}
-G\left(k\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k+1\right)_{R}\label{eq:RightOrthoGT}
+G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{R}\label{eq:RightOrthoGT}
 \end{equation}
 
 \end_inset
@@ -622,18 +622,74 @@ where
 \end_inset
 
  are the uncompressed/triangular iMPO operators.
- Compression works on the full gauge transform 
+ If we do left first and then right we have:
 \begin_inset Formula 
-\begin{equation}
-G\left(k\right)=G\left(k\right)_{L}G\left(k+1\right)_{R}\approx\tilde{U}\left(k\right)\tilde{s}\left(k\right)\tilde{V}\left(k\right)\label{eq:LR-GT}
-\end{equation}
+\[
+G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k\right)_{L}
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k\right)_{R}
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+=\left[G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}G\left(k\right)_{L}^{-1}\right]G\left(k\right)_{R}
+\]
+
+\end_inset
+
+or
+\begin_inset Formula 
+\[
+G\left(k-1\right)_{L}^{-1}G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{L}^{-1}G\left(k\right)_{R}
+\]
+
+\end_inset
+
+or
+\begin_inset Formula 
+\[
+G\left(k-1\right)_{0R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{0R}
+\]
 
 \end_inset
 
 where
 \begin_inset Formula 
+\[
+G\left(k\right)_{0R}=G\left(k\right)_{L}^{-1}G\left(k\right)_{R}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Compression works on full gauge transform between 
+\begin_inset Formula $R$
+\end_inset
+
+ and 
+\begin_inset Formula $L$
+\end_inset
+
+ which in our example is 
+\begin_inset Formula $G_{R}$
+\end_inset
+
+ 
+\begin_inset Formula 
 \begin{equation}
-G\left(k-1\right)\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k\right)\label{eq:LR-GR}
+G\left(k\right)_{R}\approx\tilde{U}\left(k\right)\tilde{s}\left(k\right)\tilde{V}\left(k\right)\label{eq:LR-GT}
 \end{equation}
 
 \end_inset
@@ -658,7 +714,7 @@ s look like
 
 \begin_inset Formula 
 \begin{equation}
-\hat{W}\left(k\right)_{L^{\prime}}=\tilde{U}\left(k-1\right)^{\dagger}\hat{W}\left(k\right)_{L}^{n}\tilde{U}\left(k\right)^{n}\label{eq:CompressedWL}
+\hat{W}\left(k\right)_{L^{\prime}}=\tilde{U}\left(k-1\right)^{\dagger}\hat{W}\left(k\right)_{L}\tilde{U}\left(k\right)\label{eq:CompressedWL}
 \end{equation}
 
 \end_inset
@@ -667,25 +723,25 @@ If we specify a particular process, such as
 \end_layout
 
 \begin_layout Enumerate
-Right orthogonalize with rank reduction.
-\end_layout
-
-\begin_layout Enumerate
 Left orthogonalize with rank reduction.
 \end_layout
 
 \begin_layout Enumerate
+Right orthogonalize with rank reduction.
+\end_layout
+
+\begin_layout Enumerate
 Compress and use 
-\begin_inset Formula $\hat{W}{}_{L^{\prime}}$
+\begin_inset Formula $\hat{W}{}_{R\prime}$
 \end_inset
 
  for VUMPS.
  Call 
-\begin_inset Formula $\hat{W}{}_{L^{\prime}}=\hat{W}{}_{comp}$
+\begin_inset Formula $\hat{W}{}_{R^{\prime}}=\hat{W}{}_{comp}$
 \end_inset
 
  to avoid overloading the use and meaning of 
-\begin_inset Formula $L$
+\begin_inset Formula $R$
 \end_inset
 
 
@@ -695,7 +751,7 @@ Compress and use
 then we can relate
 \begin_inset Formula 
 \[
-\hat{W}\left(k\right){}_{comp}=\tilde{U}\left(k-1\right)^{\dagger}\hat{W}\left(k\right)_{L}\tilde{U}\left(k\right)
+\hat{W}\left(k\right){}_{comp}=\tilde{V}\left(k-1\right)\hat{W}\left(k\right)_{R}\tilde{V}\left(k\right)^{\dagger}
 \]
 
 \end_inset
@@ -703,15 +759,7 @@ then we can relate
 
 \begin_inset Formula 
 \[
-=\tilde{U}\left(k-1\right)^{\dagger}G\left(k-1\right)_{L}\hat{W}\left(k\right)_{R}G\left(k\right)_{L}^{-1}\tilde{U}\left(k\right)
-\]
-
-\end_inset
-
-
-\begin_inset Formula 
-\[
-=\tilde{U}\left(k-1\right)^{\dagger}G\left(k-1\right)_{L}G\left(k\right)_{R}^{-1}\hat{W}\left(k\right)_{0}G\left(k+1\right)_{R}G\left(k\right)_{L}^{-1}\tilde{U}\left(k\right).
+=\tilde{V}\left(k-1\right)G\left(k-1\right)_{R0}\hat{W}\left(k\right)_{0}G\left(k\right)_{R0}^{-1}\tilde{V}\left(k\right)^{\dagger}.
 \]
 
 \end_inset
@@ -719,7 +767,7 @@ then we can relate
 Combining factors
 \begin_inset Formula 
 \begin{equation}
-\hat{W}\left(k\right){}_{comp}=G\left(k-1\right)_{full}^{-1}\hat{W}\left(k\right)_{0}G\left(k\right)_{full}\label{eq:FullGT}
+\hat{W}\left(k\right){}_{comp}G\left(k\right)_{full}=G\left(k-1\right)_{full}\hat{W}\left(k\right)_{0}\label{eq:FullGT}
 \end{equation}
 
 \end_inset
@@ -727,7 +775,7 @@ Combining factors
 where
 \begin_inset Formula 
 \[
-G\left(k\right)_{full}=G\left(k+1\right)_{R}G\left(k\right)_{L}^{-1}\tilde{U}\left(k\right)^{n}.
+G\left(k\right)_{full}=\tilde{V}\left(k\right)G\left(k\right)_{R0}=\tilde{V}\left(k\right)G\left(k\right)_{L}^{-1}G\left(k\right)_{R}
 \]
 
 \end_inset

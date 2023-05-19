@@ -52,31 +52,33 @@ site  Ns   max(s)     min(s)    Entropy  Tr. Error
 ```
 """
 function truncate!(
-  H::reg_form_iMPO; rr_cutoff=1e-14, kwargs...
-)::Tuple{reg_form_iMPO,reg_form_iMPO,Any,bond_spectrums}
+  Hi::reg_form_iMPO; rr_cutoff=1e-14, kwargs...
+)::Tuple{reg_form_iMPO,reg_form_iMPO,Any,Any,bond_spectrums}
   #
   #  Orthogonalize and get the gauge transforms between HL and HR
   #
-  HR=copy(H)
-  orthogonalize!(HR, left; cutoff=rr_cutoff, kwargs...)
-  HL = copy(HR)
-  Gs = orthogonalize!(HR, right; cutoff=rr_cutoff, kwargs...)
+  # HR=copy(H)
+  # orthogonalize!(HR, left; cutoff=rr_cutoff, kwargs...)
+  # HL = copy(HR)
+  # Gs = orthogonalize!(HR, right; cutoff=rr_cutoff, kwargs...)
+  HL,GLR,HR,G = orthogonalize(Hi;cutoff=rr_cutoff,kwargs...)
   #
   #  Now compress and gauge transforms and apply the similarity transform to HL and HR.
   #
-  N = length(HL)
+  N = length(Hi)
   ss = bond_spectrums(undef, N)
-  Ss = CelledVector{ITensor}(undef, N,translator(H))
-  for n in 1:N
+  Ss = CelledVector{ITensor}(undef, N,translator(Hi))
+  for k in 1:N
     #prime the right index of G so that indices can be distinguished when N==1.
-    Gs[n] = prime(Gs[n],HR[n+1].ileft)
-    U, Ss[n], V, ss[n] = truncateG(Gs[n], dag(HL[n].iright) ; kwargs...)
-    HL[n] *= U
-    HL[n + 1] *= dag(U)
-    HR[n] *= dag(V)
-    HR[n + 1] *= V
+    GLR[k] = prime(GLR[k],HR[k+1].ileft)
+    U, Ss[k], V, ss[k] = truncateG(GLR[k], dag(HL[k].iright) ; kwargs...)
+    HL[k] *= U
+    HL[k + 1] *= dag(U)
+    HR[k] *= dag(V)
+    HR[k + 1] *= V
+    G[k]*=dag(V)
   end
-  return HL, HR, Ss, ss 
+  return HL, HR, Ss, G, ss 
 end
 
 function truncateG(G::ITensor, igl::Index; cutoff=1e-15, kwargs...)

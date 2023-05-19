@@ -20,19 +20,15 @@ end
 
 let
     initstate(n) = "↑"
-    sites = infsiteinds("S=1/2", 2; initstate, conserve_qns=false)
+    sites = infsiteinds("S=1/2", 4; initstate, conserve_qns=true)
     ψ = InfMPS(sites, initstate)
-    H = InfiniteMPO(Model"heisenbergNNN"(), sites; NNN=5)
-    Hc=orthogonalize(H)
+    H = InfiniteMPO(Model"heisenbergNNN"(), sites; NNN=2)
+    Ho=orthogonalize(H)
+    @show check_gauge(Ho)
+    @show check_gauge(Ho,H)
     
-    @show norm(Hc.G[0]*Hc.AR[1]-H[1]*Hc.G[1])
-    @show norm(Hc.G[1]*Hc.AR[2]-H[2]*Hc.G[2])
-    #Hc,_=truncate(H)
-
-
-
-
-
-
+    Ht,ss=truncate(H)
+    @show check_gauge(Ht)
+    @show check_gauge(Ht,H)
     
 end
