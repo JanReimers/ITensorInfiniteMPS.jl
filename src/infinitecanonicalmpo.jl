@@ -63,15 +63,89 @@ function full_ortho_gauge(GL::CelledVector{ITensor},GR::CelledVector{ITensor})
     N=length(GL)
     G=CelledVector{ITensor}(undef,N)
     for k in 1:N
-        #TODO: use linsolve GL(k) * G[k] = GR[k] for G[k]
-        GLa_inv=sparse(transpose(pinv(array(GL[k]))))
-        droptol!(GLa_inv, 1e-13)
-        # @show GLa_inv
-        GL_inv=ITensor(GLa_inv,inds(dag(GL[k]))) #Penrose inverse for rectangular.
-        G[k]=GL_inv*GR[k]
+        G[k]=lsolve(GL[k],GR[k])
         @assert order(G[k])==2
     end
     return G
+end
+
+#
+#  Solve using the Penrose inverse and leverage all the block sparse handling built into svd and contract.
+#
+function lsolve(A::ITensor,B::ITensor;tol=1e-15)::ITensor
+    ii=commonind(A,B)
+    U,s,V=svd(A,ii;cutoff=tol)
+    if minimum(diag(s))<1e-12
+        @warn("Trying to solve near singular system. diag(s)=$(diag(s))")
+    end
+    return dag(V)*inv(s)*dag(U)*B
+ end
+
+function inv(s::ITensor)
+    return itensor(inv(tensor(s)))
+end
+
+function inv(s::DiagTensor)
+    # creating a DiagTensor directly seems to be very diffficult
+    sinv=tensor(diagITensor(dag(inds(s))))
+    for i in 1:diaglength(s)
+        s1=1.0/NDTensors.getdiagindex(s,i)
+        NDTensors.setdiagindex!(sinv,s1,i)
+    end
+    return sinv
+end
+
+function inv(s::DiagBlockSparseTensor)
+    sinv=DiagBlockSparseTensor(nzblocks(s),dag(inds(s)))
+    for i in 1:diaglength(s)
+        s1=1.0/NDTensors.getdiagindex(s,i)
+        NDTensors.setdiagindex!(sinv,s1,i)
+    end
+    return sinv
+end
+
+ function lsolve(A::DenseTensor{<:Number,2,IndsT},B::DenseTensor{<:Number,2,IndsT},tol::Float64) where {IndsT}
+    indsX=dag(ind(A,2)),ind(B,2)
+    X=lsolvem(A,B)
+    return itensor(X,indsX...)
+ end
+
+ function lsolvem(A::DenseTensor{<:Number,2,IndsT},B::DenseTensor{<:Number,2,IndsT}) where {IndsT}
+    nr,nc=size(A)
+    @assert size(B,1)==nr
+    nk=size(B,2)
+    X=Matrix{Float64}(undef,nc,nk)
+    Aa=array(A)
+    for k in 1:nk
+        X[:,k]=Aa\array(B[:,k])
+    end
+    return X
+end
+
+function lsolve(A::BlockSparseTensor,B::BlockSparseTensor,tol::Float64)
+    ElT=eltype(A)
+    indsX = dag(ind(A,2)),ind(B,2)
+    X1 = BlockSparseTensor(ElT, indsX)
+    for Ab in nzblocks(A)
+        Av=blockview(A,Ab)
+        if norm(Av)>0.0 #If A is very small, X can blow up accordingly.
+            for Bb in nzblocks(B)
+                if Ab[1]==Bb[1]
+                    X=lsolvem(Av,blockview(B,Bb))
+                    err=norm(array(Av)*X-array(blockview(B,Bb)))
+                    @show err
+                    if norm(X)>tol && err<tol
+                        Xb=Block(Ab[2],Bb[2])
+                        # @show Ab Bb Xb Av blockview(B,Bb) X
+                        insertblock!(X1,Xb)
+                        blockview(X1, Xb).=X
+                    end
+                end
+            end
+        end
+    end
+
+    return itensor(X1)
 end
 
 function ITensors.truncate(Hi::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
