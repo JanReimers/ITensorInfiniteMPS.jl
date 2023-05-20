@@ -104,49 +104,6 @@ function inv(s::DiagBlockSparseTensor)
     return sinv
 end
 
- function lsolve(A::DenseTensor{<:Number,2,IndsT},B::DenseTensor{<:Number,2,IndsT},tol::Float64) where {IndsT}
-    indsX=dag(ind(A,2)),ind(B,2)
-    X=lsolvem(A,B)
-    return itensor(X,indsX...)
- end
-
- function lsolvem(A::DenseTensor{<:Number,2,IndsT},B::DenseTensor{<:Number,2,IndsT}) where {IndsT}
-    nr,nc=size(A)
-    @assert size(B,1)==nr
-    nk=size(B,2)
-    X=Matrix{Float64}(undef,nc,nk)
-    Aa=array(A)
-    for k in 1:nk
-        X[:,k]=Aa\array(B[:,k])
-    end
-    return X
-end
-
-function lsolve(A::BlockSparseTensor,B::BlockSparseTensor,tol::Float64)
-    ElT=eltype(A)
-    indsX = dag(ind(A,2)),ind(B,2)
-    X1 = BlockSparseTensor(ElT, indsX)
-    for Ab in nzblocks(A)
-        Av=blockview(A,Ab)
-        if norm(Av)>0.0 #If A is very small, X can blow up accordingly.
-            for Bb in nzblocks(B)
-                if Ab[1]==Bb[1]
-                    X=lsolvem(Av,blockview(B,Bb))
-                    err=norm(array(Av)*X-array(blockview(B,Bb)))
-                    @show err
-                    if norm(X)>tol && err<tol
-                        Xb=Block(Ab[2],Bb[2])
-                        # @show Ab Bb Xb Av blockview(B,Bb) X
-                        insertblock!(X1,Xb)
-                        blockview(X1, Xb).=X
-                    end
-                end
-            end
-        end
-    end
-
-    return itensor(X1)
-end
 
 function ITensors.truncate(Hi::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
     HL, HR, Ss, Gfull, ss = truncate!(reg_form_iMPO(Hi);kwargs...)
