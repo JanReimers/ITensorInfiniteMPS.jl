@@ -622,10 +622,14 @@ where
 \end_inset
 
  are the uncompressed/triangular iMPO operators.
- If we do left first and then right we have:
+ If we do left first and then right we have (being careful with the 
+\begin_inset Formula $G$
+\end_inset
+
+ transform labeling:
 \begin_inset Formula 
 \[
-G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k\right)_{L}
+G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{0L}G\left(k\right)_{L}
 \]
 
 \end_inset
@@ -633,7 +637,7 @@ G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k
 
 \begin_inset Formula 
 \[
-G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k\right)_{R}
+G\left(k-1\right)_{LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k\right)_{LR}
 \]
 
 \end_inset
@@ -641,7 +645,7 @@ G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k
 
 \begin_inset Formula 
 \[
-=\left[G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}G\left(k\right)_{L}^{-1}\right]G\left(k\right)_{R}
+=\left[G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}G\left(k0\right)_{L}^{-1}\right]G\left(k\right)_{LR}
 \]
 
 \end_inset
@@ -649,7 +653,7 @@ G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k
 or
 \begin_inset Formula 
 \[
-G\left(k-1\right)_{L}^{-1}G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{L}^{-1}G\left(k\right)_{R}
+G\left(k-1\right)_{0L}^{-1}G\left(k-1\right)_{LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{0L}^{-1}G\left(k\right)_{LR}
 \]
 
 \end_inset
@@ -662,10 +666,14 @@ G\left(k-1\right)_{0R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(
 
 \end_inset
 
-where
+where 
+\begin_inset Formula $G\left(k\right)_{0R}$
+\end_inset
+
+ is any solution of
 \begin_inset Formula 
 \[
-G\left(k\right)_{0R}=G\left(k\right)_{L}^{-1}G\left(k\right)_{R}
+G\left(k\right)_{L}G\left(k\right)_{0R}=G\left(k\right)_{R}
 \]
 
 \end_inset
@@ -683,13 +691,13 @@ Compression works on full gauge transform between
 \end_inset
 
  which in our example is 
-\begin_inset Formula $G_{R}$
+\begin_inset Formula $G_{LR}$
 \end_inset
 
  
 \begin_inset Formula 
 \begin{equation}
-G\left(k\right)_{R}\approx\tilde{U}\left(k\right)\tilde{s}\left(k\right)\tilde{V}\left(k\right)\label{eq:LR-GT}
+G\left(k\right)_{LR}\approx\tilde{U}\left(k\right)\tilde{s}\left(k\right)\tilde{V}\left(k\right)\label{eq:LR-GT}
 \end{equation}
 
 \end_inset
@@ -751,23 +759,23 @@ Compress and use
 then we can relate
 \begin_inset Formula 
 \[
-\hat{W}\left(k\right){}_{comp}=\tilde{V}\left(k-1\right)\hat{W}\left(k\right)_{R}\tilde{V}\left(k\right)^{\dagger}
-\]
-
-\end_inset
-
-
-\begin_inset Formula 
-\[
-=\tilde{V}\left(k-1\right)G\left(k-1\right)_{R0}\hat{W}\left(k\right)_{0}G\left(k\right)_{R0}^{-1}\tilde{V}\left(k\right)^{\dagger}.
+\tilde{V}\left(k-1\right)^{\dagger}\hat{W}\left(k\right){}_{comp}\tilde{V}\left(k\right)=\hat{W}\left(k\right)_{R}
 \]
 
 \end_inset
 
 Combining factors
 \begin_inset Formula 
+\[
+G\left(k-1\right)_{0R}\tilde{V}\left(k-1\right)^{\dagger}\hat{W}\left(k\right){}_{comp}=\hat{W}\left(k\right)_{0}G\left(k\right)_{0R}\tilde{V}\left(k\right)^{\dagger}
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
 \begin{equation}
-\hat{W}\left(k\right){}_{comp}G\left(k\right)_{full}=G\left(k-1\right)_{full}\hat{W}\left(k\right)_{0}\label{eq:FullGT}
+G\left(k-1\right)_{full}\hat{W}\left(k\right){}_{comp}=\hat{W}\left(k\right)_{0}G\left(k\right)_{full}\label{eq:FullGT}
 \end{equation}
 
 \end_inset
@@ -775,7 +783,7 @@ Combining factors
 where
 \begin_inset Formula 
 \[
-G\left(k\right)_{full}=\tilde{V}\left(k\right)G\left(k\right)_{R0}=\tilde{V}\left(k\right)G\left(k\right)_{L}^{-1}G\left(k\right)_{R}
+G\left(k\right)_{full}=G\left(k\right)_{0R}\tilde{V}\left(k\right)^{\dagger}=G\left(k\right)_{L}^{-1}G\left(k\right)_{R}\tilde{V}\left(k\right)^{\dagger}
 \]
 
 \end_inset
@@ -810,7 +818,7 @@ noprefix "false"
  holds:
 \begin_inset Formula 
 \[
-T\left(k\right)_{Lcomp}^{W}=G\left(k-1\right)_{full}^{-1}T\left(k\right)_{L0}^{W}G\left(k\right)_{full}
+G\left(k-1\right)_{full}T\left(k\right)_{Lcomp}^{W}=T\left(k\right)_{L0}^{W}G\left(k\right)_{full}
 \]
 
 \end_inset
@@ -818,15 +826,32 @@ T\left(k\right)_{Lcomp}^{W}=G\left(k-1\right)_{full}^{-1}T\left(k\right)_{L0}^{W
 
 \begin_inset Formula 
 \[
-T\left(k\right)_{Rcomp}^{W}=G\left(k-1\right)_{full}^{-1}T\left(k\right)_{R0}^{W}G\left(k\right)_{full}
+G\left(k-1\right)_{full}T\left(k\right)_{Rcomp}^{W}=T\left(k\right)_{R0}^{W}G\left(k\right)_{full}.
 \]
 
 \end_inset
 
-also for the full unit cell
+The gauge relation is the same because both 
+\begin_inset Formula $T\left(k\right)_{L0}^{W}$
+\end_inset
+
+ and 
+\begin_inset Formula $T\left(k\right)_{R0}^{W}$
+\end_inset
+
+ us the same 
+\begin_inset Formula $\hat{W}\left(k\right){}_{comp}$
+\end_inset
+
+, they just use different represntations of 
+\begin_inset Formula $\psi$
+\end_inset
+
+.
+ For the full unit cell
 \begin_inset Formula 
 \begin{equation}
-\mathbb{T}\left(k\right)_{Lcomp}^{W}=G\left(k\right)_{full}^{-1}\mathbb{T}\left(k\right)_{L0}^{W}G\left(k\right)_{full}\label{eq:Cell TWL-1}
+G\left(k\right)_{full}\mathbb{T}\left(k\right)_{Lcomp}^{W}=\mathbb{T}\left(k\right)_{L0}^{W}G\left(k\right)_{full}\label{eq:Cell TWL-1}
 \end{equation}
 
 \end_inset
@@ -834,7 +859,7 @@ also for the full unit cell
 
 \begin_inset Formula 
 \[
-\mathbb{T}\left(k\right)_{Rcomp}^{W}=G\left(k\right)_{full}^{-1}\mathbb{T}\left(k\right)_{R0}^{W}G\left(k\right)_{full}
+G\left(k\right)_{full}\mathbb{T}\left(k\right)_{Rcomp}^{W}=\mathbb{T}\left(k\right)_{R0}^{W}G\left(k\right)_{full}
 \]
 
 \end_inset
@@ -857,31 +882,51 @@ noprefix "false"
  as
 \begin_inset Formula 
 \[
-G\left(k\right)_{full}^{-1}\overrightarrow{L}\left(k\right)^{W}G\left(k\right)_{full}=G\left(k\right)_{full}^{-1}\overrightarrow{L}\left(k\right)^{W}G\left(k\right)_{full}G\left(k\right)_{full}^{-1}\mathbb{T}\left(k\right)_{L}^{W}G\left(k\right)_{full}
+\left(L\left(k\right)^{W}\right|=\left(L\left(k\right)^{W}\right|\mathbb{T}\left(k\right)_{L0}^{W}
 \]
 
 \end_inset
 
-or
+
 \begin_inset Formula 
 \[
-\overrightarrow{L}\left(k\right)_{comp}^{W}=\overrightarrow{L}\left(k\right)_{comp}^{W}\mathbb{T}\left(k\right)_{Lcomp}^{W}
+=\left(L\left(k\right)^{W}\right|G\left(k\right)_{full}\mathbb{T}\left(k\right)_{Lcomp}^{W}G\left(k\right)_{full}^{-1}
 \]
 
 \end_inset
 
-where 
+
 \begin_inset Formula 
-\begin{equation}
-\overrightarrow{L}\left(k\right)_{comp}^{W}=G\left(k\right)_{full}^{-1}\overrightarrow{L}\left(k\right)^{W}G\left(k\right)_{full}\label{eq:Lprime}
-\end{equation}
+\[
+\left(L\left(k\right)^{W}\right|G\left(k\right)_{full}=\left(L\left(k\right)^{W}\right|G\left(k\right)_{full}\mathbb{T}\left(k\right)_{Lcomp}^{W}
+\]
+
+\end_inset
+
+which defines the compressed version of 
+\begin_inset Formula $L$
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\left(L\left(k\right)_{comp}^{W}\right|=\left(L\left(k\right)^{W}\right|G\left(k\right)_{full}
+\]
 
 \end_inset
 
 Similarly
 \begin_inset Formula 
+\begin{equation}
+\left|R\left(k\right)^{W}\right)=\mathbb{T}\left(k\right)_{R}^{W}\left|R\left(k\right)^{W}\right)\label{eq:Site1R Eigen-1}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
 \[
-G\left(k\right)_{full}^{-1}\left|\overrightarrow{R}\left(k\right)^{W}\right)G\left(k\right)_{full}=G\left(k\right)_{full}^{-1}\mathbb{T}\left(k\right)_{R}^{W}G\left(k\right)_{full}G\left(k\right)_{full}^{-1}\left|\overrightarrow{R}\left(k\right)^{W}\right)G\left(k\right)_{full}
+=G\left(k\right)_{full}\mathbb{T}\left(k\right)_{Lcomp}^{W}G\left(k\right)_{full}^{-1}\left|R\left(k\right)^{W}\right)
 \]
 
 \end_inset
@@ -889,15 +934,19 @@ G\left(k\right)_{full}^{-1}\left|\overrightarrow{R}\left(k\right)^{W}\right)G\le
 
 \begin_inset Formula 
 \[
-\overrightarrow{R}\left(k\right)_{comp}^{W}=\mathbb{T}\left(k\right)_{Rcomp}^{W}\overrightarrow{R}\left(k\right)_{comp}^{W}
+G\left(k\right)_{full}^{-1}\left|R\left(k\right)^{W}\right)=\mathbb{T}\left(k\right)_{Lcomp}^{W}G\left(k\right)_{full}^{-1}\left|R\left(k\right)^{W}\right)
 \]
 
 \end_inset
 
-where 
+which defines the compressed version of 
+\begin_inset Formula $L$
+\end_inset
+
+
 \begin_inset Formula 
 \begin{equation}
-\overrightarrow{R}\left(k\right)_{comp}^{W}=G\left(k\right)_{full}^{-1}\overrightarrow{R}\left(k\right)^{W}G\left(k\right)_{full}\label{eq:Rprime}
+\left|R\left(k\right)_{comp}^{W}\right)=G\left(k\right)_{full}^{-1}\left|R\left(k\right)^{W}\right)\label{eq:Rprime}
 \end{equation}
 
 \end_inset

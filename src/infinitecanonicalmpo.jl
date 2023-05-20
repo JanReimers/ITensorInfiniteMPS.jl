@@ -1,4 +1,6 @@
 
+import Base: inv
+
 struct InfiniteCanonicalMPO <: AbstractInfiniteMPS
     AL::InfiniteMPO
     GLR::CelledVector{ITensor} #Gauge transform betwee AL and AR
@@ -63,7 +65,7 @@ function full_ortho_gauge(GL::CelledVector{ITensor},GR::CelledVector{ITensor})
     N=length(GL)
     G=CelledVector{ITensor}(undef,N)
     for k in 1:N
-        G[k]=lsolve(GL[k],GR[k])
+        G[k]=Base.inv(GL[k])*GR[k]
         @assert order(G[k])==2
     end
     return G
@@ -72,20 +74,30 @@ end
 #
 #  Solve using the Penrose inverse and leverage all the block sparse handling built into svd and contract.
 #
-function lsolve(A::ITensor,B::ITensor;tol=1e-15)::ITensor
-    ii=commonind(A,B)
-    U,s,V=svd(A,ii;cutoff=tol)
-    if minimum(diag(s))<1e-12
+# function lsolve(A::ITensor,B::ITensor;tol=1e-15)::ITensor
+#     ii=commonind(A,B)
+#     U,s,V=svd(A,ii;cutoff=tol)
+#     if minimum(diag(s))<1e-12
+#         @warn("Trying to solve near singular system. diag(s)=$(diag(s))")
+#     end
+#     return dag(V)*inv(s)*dag(U)*B
+#  end
+
+ function Base.inv(A::ITensor;tol=1e-12,kwargs...)::ITensor
+    @assert order(A)==2
+
+    U,s,V=svd(A,ind(A,1);kwargs...)
+    if minimum(diag(s))<tol
         @warn("Trying to solve near singular system. diag(s)=$(diag(s))")
     end
-    return dag(V)*inv(s)*dag(U)*B
+    return dag(V)*invdiag(s)*dag(U)
  end
 
-function inv(s::ITensor)
-    return itensor(inv(tensor(s)))
+function invdiag(s::ITensor)
+    return itensor(invdiag(tensor(s)))
 end
 
-function inv(s::DiagTensor)
+function invdiag(s::DiagTensor)
     # creating a DiagTensor directly seems to be very diffficult
     sinv=tensor(diagITensor(dag(inds(s))))
     for i in 1:diaglength(s)
@@ -95,7 +107,7 @@ function inv(s::DiagTensor)
     return sinv
 end
 
-function inv(s::DiagBlockSparseTensor)
+function invdiag(s::DiagBlockSparseTensor)
     sinv=DiagBlockSparseTensor(nzblocks(s),dag(inds(s)))
     for i in 1:diaglength(s)
         s1=1.0/NDTensors.getdiagindex(s,i)
