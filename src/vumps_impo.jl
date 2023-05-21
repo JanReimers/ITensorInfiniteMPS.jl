@@ -107,7 +107,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
             @assert order(Lₖ₋₁)==3
         end # for k
         assign!(L₁, slice(Lₖ₋₁,il=>b),il=>b)  #save the new value.
-        L₁[il=>b:b]=Lₖ₋₁[il=>b:b]
+        # L₁[il=>b:b]=Lₖ₋₁[il=>b:b] #fails
     end #for b
     #
     #  At this point 
@@ -141,7 +141,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
         L₁b=slice(L₁,il=>b)
         L1b=slice(L[1],il=>b)
         if norm(L₁b-L1b)>1e-14*D*N
-            @show b L₁b L1b L₁b-L1b norm(L₁b-L1b)
+            @show b norm(L₁b-L1b)
             pass= false
         end
     end
@@ -181,8 +181,8 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
             Rₖ=apply_TW_right(Rₖ,H[k],ψ.AR[k])
             @assert order(Rₖ)==3
         end # for k
-        # assign!(R₁,slice(Rₖ,ir=>b),ir=>b)  #save the new value.
-        R₁[ir=>b:b]=Rₖ[ir=>b:b]
+        assign!(R₁,slice(Rₖ,ir=>b),ir=>b)  #save the new value.
+        # R₁[ir=>b:b]=Rₖ[ir=>b:b] #fails
     end #for b1
     #
     #  See comments above in the same section of the left_environment function
