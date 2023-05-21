@@ -174,6 +174,16 @@ function generate_twobody_nullspace(
   R, _ = right_environment(H, ψ)
   return noprime((L[k-1]*H[k])*ψ.AL[k]*ψ.C[k]*ψ.AR[k+1]*(H[k+1]*R[k+1]))
 end
+
+function generate_twobody_nullspace(
+  ψ::InfiniteCanonicalMPS, H::InfiniteCanonicalMPO, b::Tuple{Int,Int}; atol=1e-2
+)
+  k, k2 = b
+  @assert k2==k+1
+  L, _ = left_environment(H, ψ)
+  R, _ = right_environment(H, ψ)
+  return noprime((L[k-1]*H[k])*ψ.AL[k]*ψ.C[k]*ψ.AR[k+1]*(H[k+1]*R[k+1]))
+end
 # atol controls the tolerance cutoff for determining which eigenvectors are in the null
 # space of the isometric MPS tensors. Setting to 1e-2 since we only want to keep
 # the eigenvectors corresponding to eigenvalues of approximately 1.

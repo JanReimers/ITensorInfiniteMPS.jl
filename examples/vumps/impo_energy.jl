@@ -27,38 +27,38 @@ vumps_kwargs = (
 # tdvp_iteration tests
 #
 
-let 
-    println("----------------------------------------------")
-    # initstate(n) = isodd(n) ? "↑" : "↓"
-    initstate(n) = "↑"
-    N,nex=1,2
-    # s = siteinds("S=1/2", N; conserve_qns=false)
-    si = infsiteinds("S=1/2", N;initstate,conserve_szparity=true)
-    ψ = InfMPS(si, initstate)
-    # Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
-    # ψ = tdvp(Hm, ψ; vumps_kwargs...)
-    # for _ in 1:nex
-    #     ψ = subspace_expansion(ψ, Hm; cutoff=1e-8,maxdim=16)
-    #     ψ = tdvp(Hm, ψ; vumps_kwargs...)
-    # end
-    # ψ,(el,er)=ITensorInfiniteMPS.tdvp_iteration_sequential(vumps_solver,Hm,ψ;time_step=-Inf)
-    # @show el er 
+# let 
+#     println("----------------------------------------------")
+#     # initstate(n) = isodd(n) ? "↑" : "↓"
+#     initstate(n) = "↑"
+#     N,nex=1,2
+#     # s = siteinds("S=1/2", N; conserve_qns=false)
+#     si = infsiteinds("S=1/2", N;initstate,conserve_szparity=true)
+#     ψ = InfMPS(si, initstate)
+#     # Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
+#     # ψ = tdvp(Hm, ψ; vumps_kwargs...)
+#     # for _ in 1:nex
+#     #     ψ = subspace_expansion(ψ, Hm; cutoff=1e-8,maxdim=16)
+#     #     ψ = tdvp(Hm, ψ; vumps_kwargs...)
+#     # end
+#     # ψ,(el,er)=ITensorInfiniteMPS.tdvp_iteration_sequential(vumps_solver,Hm,ψ;time_step=-Inf)
+#     # @show el er 
 
-    # H = InfiniteMPOMatrix(Model("heisenberg"), si)
-    H = InfiniteMPO(Model("ising"), si;J=1.0, h=1.2)
-    # ψ,(el,er)=tdvp_iteration_sequential(vumps_solver,H,ψ;time_step=-Inf)
-    # @show el er 
-    ψ = tdvp(H, ψ; vumps_kwargs...)
-    for i in 1:nex
-        println("\n--------------Subspace expansion---------------\n")
-        ψ = subspace_expansion(ψ, H; cutoff=1e-8,maxdim=16)
-        println("\n--------------tdvp---------------\n")
-        ψ = tdvp(H, ψ; vumps_kwargs...)
-    end
-    # 
+#     # H = InfiniteMPOMatrix(Model("heisenberg"), si)
+#     H = InfiniteMPO(Model("ising"), si;J=1.0, h=1.2)
+#     # ψ,(el,er)=tdvp_iteration_sequential(vumps_solver,H,ψ;time_step=-Inf)
+#     # @show el er 
+#     ψ = tdvp(H, ψ; vumps_kwargs...)
+#     for i in 1:nex
+#         println("\n--------------Subspace expansion---------------\n")
+#         ψ = subspace_expansion(ψ, H; cutoff=1e-8,maxdim=16)
+#         println("\n--------------tdvp---------------\n")
+#         ψ = tdvp(H, ψ; vumps_kwargs...)
+#     end
+#     # 
     
     
-end
+# end
 #
 #  Environment tests
 #
@@ -101,65 +101,65 @@ expected_e=[
 
 eps=[1e-15,1e-9,0.0,2e-9]
 
-# let 
-#     println("----------------------------------------------")
-#     initstate(n) = isodd(n) ? "↑" : "↓"
-#     for N in  2:2
-#         for nex in [1]
-#             isodd(N) && nex>0 && continue
-#             s = siteinds("S=1/2", N; conserve_qns=false)
-#             si = infsiteinds(s)
-#             ψ = InfMPS(si, initstate)
-#             Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
-#             ψ = tdvp(Hm, ψ; vumps_kwargs...)
-#             for _ in 1:nex
-#                 ψ = subspace_expansion(ψ, Hm; cutoff=1e-8,maxdim=16)
-#                 ψ = tdvp(Hm, ψ; vumps_kwargs...)
-#             end
-#             l = linkinds(only, ψ.AL)
-#             D=dim(l[1])
-#             println("Testing Ncell=$N, bond dimension D=$D")
+let 
+    println("----------------------------------------------")
+    initstate(n) = isodd(n) ? "↑" : "↓"
+    for N in  2:2
+        for nex in [1]
+            isodd(N) && nex>0 && continue
+            s = siteinds("S=1/2", N; conserve_qns=false)
+            si = infsiteinds(s)
+            ψ = InfMPS(si, initstate)
+            Hm = InfiniteMPOMatrix(Model("heisenberg"), si)
+            ψ = tdvp(Hm, ψ; vumps_kwargs...)
+            for _ in 1:nex
+                ψ = subspace_expansion(ψ, Hm; cutoff=1e-8,maxdim=16)
+                ψ = tdvp(Hm, ψ; vumps_kwargs...)
+            end
+            l = linkinds(only, ψ.AL)
+            D=dim(l[1])
+            println("Testing Ncell=$N, bond dimension D=$D")
             
 
-#             Lm,eₗ=left_environment(Hm,ψ) #Loic's version
-#             # @show abs(eₗ/N-expected_e[D][N]) nex D eps[D]
-#             @assert abs(eₗ/N-expected_e[D][N])<eps[D]
-#             Rm,eᵣ=right_environment(Hm,ψ) #Loic's version
-#             @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+            Lm,eₗ=left_environment(Hm,ψ) #Loic's version
+            # @show abs(eₗ/N-expected_e[D][N]) nex D eps[D]
+            @assert abs(eₗ/N-expected_e[D][N])<eps[D]
+            Rm,eᵣ=right_environment(Hm,ψ) #Loic's version
+            @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
 
 
-#             H = InfiniteMPO(Model("heisenberg"), si)
-#             L,eₗ=left_environment(H,ψ)
-#             check1(Lm,L,linkinds(only, H))
-#             # @show abs(eₗ/N-expected_e[D][N]) eₗ D eps[D]
-#             @assert abs(eₗ/N-expected_e[D][N])<eps[D]
-#             R,eᵣ=right_environment(H,ψ)
-#             # @show abs(eᵣ/N-expected_eₗ[D][N]) D eps[D]
-#             @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
-#             check1(Rm,R,linkinds(only, H),1)
+            H = InfiniteMPO(Model("heisenberg"), si)
+            L,eₗ=left_environment(H,ψ)
+            check1(Lm,L,linkinds(only, H))
+            # @show abs(eₗ/N-expected_e[D][N]) eₗ D eps[D]
+            @assert abs(eₗ/N-expected_e[D][N])<eps[D]
+            R,eᵣ=right_environment(H,ψ)
+            # @show abs(eᵣ/N-expected_eₗ[D][N]) D eps[D]
+            @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+            check1(Rm,R,linkinds(only, H),1)
 
-#             # Hc=orthogonalize(H)
-#             # L,eₗ=left_environment(Hc.AL,ψ)
-#             # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
-#             # L,eₗ=left_environment(Hc.AR,ψ)
-#             # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
-#             # R,eᵣ=right_environment(Hc.AL,ψ)
-#             # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
-#             # R,eᵣ=right_environment(Hc.AR,ψ)
-#             # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+            # Hc=orthogonalize(H)
+            # L,eₗ=left_environment(Hc.AL,ψ)
+            # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
+            # L,eₗ=left_environment(Hc.AR,ψ)
+            # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
+            # R,eᵣ=right_environment(Hc.AL,ψ)
+            # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+            # R,eᵣ=right_environment(Hc.AR,ψ)
+            # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
 
 
-#             # Hc,BondSpectrums = truncate(H) 
-#             # L,eₗ=left_environment(Hc.AL,ψ)
-#             # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
-#             # L,eₗ=left_environment(Hc.AR,ψ)
-#             # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
-#             # R,eᵣ=right_environment(Hc.AL,ψ)
-#             # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
-#             # R,eᵣ=right_environment(Hc.AR,ψ)
-#             # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
-#         end
-#     end
+            # Hc,BondSpectrums = truncate(H) 
+            # L,eₗ=left_environment(Hc.AL,ψ)
+            # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
+            # L,eₗ=left_environment(Hc.AR,ψ)
+            # @assert abs(eₗ/N-expected_e[D][N])<eps[D]
+            # R,eᵣ=right_environment(Hc.AL,ψ)
+            # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+            # R,eᵣ=right_environment(Hc.AR,ψ)
+            # @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
+        end
+    end
 
 #     # 
 
@@ -181,6 +181,6 @@ eps=[1e-15,1e-9,0.0,2e-9]
     
     
     
-# end
+end
 
 nothing

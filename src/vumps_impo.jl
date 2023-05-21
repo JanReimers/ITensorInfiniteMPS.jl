@@ -141,7 +141,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
         L₁b=slice(L₁,il=>b)
         L1b=slice(L[1],il=>b)
         if norm(L₁b-L1b)>1e-14*D*N
-            @show b L₁b L1b
+            @show b L₁b L1b L₁b-L1b norm(L₁b-L1b)
             pass= false
         end
     end
@@ -244,3 +244,27 @@ end
 
 H¹(L::ITensor,R::ITensor,Ŵ::ITensor)=iMPO¹(L,R,Ŵ)
 
+#
+#  Support for compressed Hamiltonians
+#
+function left_environment(Hcomp::InfiniteCanonicalMPO, ψ::InfiniteCanonicalMPS; kwargs...)
+    L,el=left_environment(Hcomp.H0,ψ;kwargs...)
+    N=nsites(Hcomp)
+    Lcomp=CelledVector{ITensor}(undef,N)
+    for k in 1:N
+        Lcomp[k]=L[k]*Hcomp.G[k]
+        @assert order(Lcomp[k])==3
+    end
+    return Lcomp,el
+end
+
+function right_environment(Hcomp::InfiniteCanonicalMPO, ψ::InfiniteCanonicalMPS; kwargs...)
+    R,er=right_environment(Hcomp.H0,ψ;kwargs...)
+    N=nsites(Hcomp)
+    Rcomp=CelledVector{ITensor}(undef,N)
+    for k in 1:N
+        Rcomp[k]=R[k]*inv(Hcomp.G[k])
+        @assert order(Rcomp[k])==3
+    end
+    return Rcomp,er
+end
