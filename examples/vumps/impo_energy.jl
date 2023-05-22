@@ -62,13 +62,13 @@ vumps_kwargs = (
 #
 #  Environment tests
 #
-function check1(Lm::CelledVector,L::CelledVector,lₕ::CelledVector,offset::Int64=0)
+function check1(Lm::CelledVector,L::CelledVector,lₕ::CelledVector)
     N=length(Lm)
     
     for k in 1:N
         Lmv=Vector{ITensor}()
-        is=inds(Lm[k+offset][1])
-        for Lmi in Lm[k+offset]
+        is=inds(Lm[k][1])
+        for Lmi in Lm[k]
             if order(Lmi)==2
                 push!(Lmv,Lmi)
             elseif order(Lmi)==3
@@ -84,7 +84,7 @@ function check1(Lm::CelledVector,L::CelledVector,lₕ::CelledVector,offset::Int6
         for i in 1:dim(il)
             Lki=slice(L[k],il=>i)
             if norm(Lki-Lmv[i])>1e-14
-                @show k i Lki Lmv[i]
+                @show k i #Lki Lmv[i]
             end
         end
     end
@@ -129,14 +129,15 @@ let
 
 
             H = InfiniteMPO(Model("heisenberg"), si)
+            # pprint(H[1])
             L,eₗ=left_environment(H,ψ)
             check1(Lm,L,linkinds(only, H))
-            # @show abs(eₗ/N-expected_e[D][N]) eₗ D eps[D]
+            # @show abs(eₗ/N-expected_e[D][N]) eₗ/N expected_e[D][N]
             @assert abs(eₗ/N-expected_e[D][N])<eps[D]
             R,eᵣ=right_environment(H,ψ)
             # @show abs(eᵣ/N-expected_eₗ[D][N]) D eps[D]
             @assert abs(eᵣ/N-expected_e[D][N])<eps[D]
-            check1(Rm,R,linkinds(only, H),1)
+            check1(Rm,R,linkinds(only, H))
 
             # Hc=orthogonalize(H)
             # L,eₗ=left_environment(Hc.AL,ψ)
