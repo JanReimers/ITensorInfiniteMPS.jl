@@ -50,7 +50,7 @@ function check_gauge(H::InfiniteCanonicalMPO,H0::InfiniteMPO)::Float64
 end
 
 function ITensors.orthogonalize(H0::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
-    HL,GLR,HR,G=orthogonalize(reg_form_iMPO(H0),kwargs...)
+    HL,GLR,HR,G=orthogonalize(reg_form_iMPO(H0);kwargs...)
     return InfiniteCanonicalMPO(H0,HL,GLR,HR,G)
 end
 function ITensors.orthogonalize(Hi::reg_form_iMPO;kwargs...)
