@@ -7,7 +7,7 @@ using SparseArrays
 function gauge_fix!(H::reg_form_iMPO;kwargs...)
   @mpoc_assert H.ul==lower
   if !is_gauge_fixed(H;kwargs...)
-    Wbs=extract_blocks(H,left; all=true,fix_inds=true)
+    Wbs=extract_blocks(H,left; Abcd=true,fix_inds=true,swap_bc=true)
     sₙ, tₙ = Solve_b0c0(H,Wbs)
     for n in eachindex(H)
       gauge_fix!(H[n],sₙ[n - 1], sₙ[n],tₙ[n - 1], tₙ[n],Wbs[n])
@@ -22,7 +22,7 @@ end
 function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   @assert length(Hrf)==length(Wbs)
   @assert translator(Hrf)==translator(Wbs)
-  @assert id(Wbs[1].irA)==id(Wbs[end].icA) #make sure periodic links were set up properly.
+  @assert id(Wbs[1].𝐀̂.ileft)==id(Wbs[end].𝐀̂.iright) #make sure periodic links were set up properly.
   A0s = Vector{Matrix}()
   b0s = Vector{Float64}()
   c0s = Vector{Float64}()
@@ -33,7 +33,7 @@ function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   ir, ic = 1, 1
   for (W,Wb) in zip(Hrf,Wbs)
     check(W)
-    cl,cr=combiner(Wb.irA;tags="cl,ir=$ir"),combiner(Wb.icA;tags="cr,ic=$ic")
+    cl,cr=combiner(Wb.𝐀̂.ileft;tags="cl,ir=$ir"),combiner(Wb.𝐀̂.iright;tags="cr,ic=$ic")
     icl,icr=combinedind(cl),combinedind(cr)
     A_0=A0(Wb)*cl*cr #Project the 𝕀 subspace, should be just one block.
     push!(A0s,sparse(matrix(icl, A_0, icr)))
@@ -44,7 +44,7 @@ function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
     push!(irb, ir)
     push!(icb, ic)
     push!(combiner_right_s,cr)
-    push!(i_b_right_column_s,Wb.icb)
+    push!(i_b_right_column_s,Wb.𝐛̂.iright)
     
     nr += size(A_0, 1)
     nc += size(A_0, 2)
@@ -103,12 +103,12 @@ function gauge_fix!(
   Wb::regform_blocks
 )
   @assert is_regular_form(W)
-  𝕀, 𝐀̂, 𝐛̂, 𝐜̂, 𝐝̂ = Wb.𝕀, Wb.𝐀̂, Wb.𝐛̂, Wb.𝐜̂, Wb.𝐝̂ #for readability below.
-  irs=dag(noncommonind(𝒔ₙ₋₁,Wb.irb))
-  ict=dag(noncommonind(𝒕ₙ,Wb.icc))
+  𝕀, 𝐀̂, 𝐛̂, 𝐜̂, 𝐝̂ = Wb.𝕀, Wb.𝐀̂.W, Wb.𝐛̂.W, Wb.𝐜̂.W, Wb.𝐝̂.W #for readability below.
+  irs=dag(noncommonind(𝒔ₙ₋₁,Wb.𝐛̂.ileft))
+  ict=dag(noncommonind(𝒕ₙ,Wb.𝐜̂.iright))
   
-  𝐛̂⎖ = 𝐛̂ + 𝒔ₙ₋₁ * 𝕀 *δ(Wb.icb,irs) -  𝐀̂ * 𝒔ₙ
-  𝐜̂⎖ = 𝐜̂ - 𝒕ₙ * 𝕀 *δ(Wb.irc,ict) +  𝒕ₙ₋₁ * 𝐀̂
+  𝐛̂⎖ = 𝐛̂ + 𝒔ₙ₋₁ * 𝕀 *δ(Wb.𝐛̂.iright,irs) -  𝐀̂ * 𝒔ₙ
+  𝐜̂⎖ = 𝐜̂ - 𝒕ₙ * 𝕀 *δ(Wb.𝐜̂.ileft,ict) +  𝒕ₙ₋₁ * 𝐀̂
   𝐝̂⎖ = 𝐝̂ + 𝒕ₙ₋₁ * 𝐛̂ - 𝒔ₙ * 𝐜̂⎖
 
   set_𝐛̂_block!(W, 𝐛̂⎖)

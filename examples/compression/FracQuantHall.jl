@@ -3,7 +3,8 @@ using ITensorMPOCompression
 using ITensorInfiniteMPS
 using Revise
 
-import ITensorInfiniteMPS: reg_form_iMPO, is_gauge_fixed, gauge_fix!
+import ITensorInfiniteMPS: reg_form_iMPO
+import ITensorMPOCompression: gauge_fix!, is_gauge_fixed
 
 N = 6
 model = Model"fqhe_2b_pot"()
