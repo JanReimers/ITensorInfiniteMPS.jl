@@ -19,8 +19,10 @@ function ITensorInfiniteMPS.translatecell(::Function, T::Float64, ::Integer)
   return T
 end
 
-function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::Vector{regform_blocks})
+function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   @assert length(Hrf)==length(Wbs)
+  @assert translator(Hrf)==translator(Wbs)
+  @assert id(Wbs[1].irA)==id(Wbs[end].icA) #make sure periodic links were set up properly.
   A0s = Vector{Matrix}()
   b0s = Vector{Float64}()
   c0s = Vector{Float64}()
@@ -89,7 +91,7 @@ function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::Vector{regform_blocks})
     push!(ss,snT)
     push!(ts,tnT)
   end
-  return CelledVector(ss), CelledVector(ts)
+  return CelledVector(ss,translator(Hrf)),CelledVector(ts,translator(Hrf))
 end
 
 function gauge_fix!(
@@ -101,11 +103,10 @@ function gauge_fix!(
   Wb::regform_blocks
 )
   @assert is_regular_form(W)
-  #Wb = extract_blocks(W, left; all=true, fix_inds=true)
   𝕀, 𝐀̂, 𝐛̂, 𝐜̂, 𝐝̂ = Wb.𝕀, Wb.𝐀̂, Wb.𝐛̂, Wb.𝐜̂, Wb.𝐝̂ #for readability below.
   irs=dag(noncommonind(𝒔ₙ₋₁,Wb.irb))
   ict=dag(noncommonind(𝒕ₙ,Wb.icc))
-
+  
   𝐛̂⎖ = 𝐛̂ + 𝒔ₙ₋₁ * 𝕀 *δ(Wb.icb,irs) -  𝐀̂ * 𝒔ₙ
   𝐜̂⎖ = 𝐜̂ - 𝒕ₙ * 𝕀 *δ(Wb.irc,ict) +  𝒕ₙ₋₁ * 𝐀̂
   𝐝̂⎖ = 𝐝̂ + 𝒕ₙ₋₁ * 𝐛̂ - 𝒔ₙ * 𝐜̂⎖

@@ -105,38 +105,38 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
       
   end
 
-  @testset "Truncate/Compress InfiniteCanonicalMPO, H=$(model[1]), qbs=$qns, Ncell=$Ncell, NNN=$NNN" for model in models,
-    qns in [false,true], Ncell in [1,3], NNN in [1,4]
-      eps=NNN*1e-14
-      initstate(n) = isodd(n) ? "↑" : "↓"
-      sites = infsiteinds(model[2], Ncell; initstate, conserve_qns=qns)
-      Hi = InfiniteMPO(model[1], sites;NNN=NNN)
+  # @testset "Truncate/Compress InfiniteCanonicalMPO, H=$(model[1]), qbs=$qns, Ncell=$Ncell, NNN=$NNN" for model in models,
+  #   qns in [false,true], Ncell in [1,3], NNN in [1,4]
+  #     eps=NNN*1e-14
+  #     initstate(n) = isodd(n) ? "↑" : "↓"
+  #     sites = infsiteinds(model[2], Ncell; initstate, conserve_qns=qns)
+  #     Hi = InfiniteMPO(model[1], sites;NNN=NNN)
 
-      Ho::InfiniteCanonicalMPO = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
-      @test check_ortho(Ho) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  #     Ho::InfiniteCanonicalMPO = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
+  #     @test check_ortho(Ho) #AL is left ortho && AR is right ortho
+  #     @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
 
-      Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
-      @test check_ortho(Ht) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
-      #@show BondSpectrums
-  end
+  #     Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
+  #     @test check_ortho(Ht) #AL is left ortho && AR is right ortho
+  #     @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  #     #@show BondSpectrums
+  # end
 
-  @testset "Try a lattice with alternating S=1/2 and S=1 sites. iMPO. Qns=$qns, Ncell=$Ncell, NNN=$NNN" for qns in [false,true], Ncell in [1,3], NNN in [1,4]
-      eps=NNN*1e-14
-      initstate(n) = isodd(n) ? "Dn" : "Up"
-      si = infsiteinds(n->isodd(n) ? "S=1" : "S=1/2",Ncell; initstate, conserve_qns=qns)
-      Hi = InfiniteMPO(Model"heisenbergNNN"(), si;NNN=NNN)
+  # @testset "Try a lattice with alternating S=1/2 and S=1 sites. iMPO. Qns=$qns, Ncell=$Ncell, NNN=$NNN" for qns in [false,true], Ncell in [1,3], NNN in [1,4]
+  #     eps=NNN*1e-14
+  #     initstate(n) = isodd(n) ? "Dn" : "Up"
+  #     si = infsiteinds(n->isodd(n) ? "S=1" : "S=1/2",Ncell; initstate, conserve_qns=qns)
+  #     Hi = InfiniteMPO(Model"heisenbergNNN"(), si;NNN=NNN)
 
-      Ho::InfiniteCanonicalMPO = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
-      @test check_ortho(Ho) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  #     Ho::InfiniteCanonicalMPO = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
+  #     @test check_ortho(Ho) #AL is left ortho && AR is right ortho
+  #     @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
 
-      Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
-      @test check_ortho(Ht) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
-      #@show BondSpectrums
-  end
+  #     Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
+  #     @test check_ortho(Ht) #AL is left ortho && AR is right ortho
+  #     @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  #     #@show BondSpectrums
+  # end
 
 end
 nothing

@@ -8,7 +8,7 @@ mutable struct reg_form_iMPO <: AbstractInfiniteMPS
   ul::reg_form
   function reg_form_iMPO(H::InfiniteMPO, ul::reg_form)
     N = length(H)
-    data = CelledVector{reg_form_Op}(undef, N)
+    data = CelledVector{reg_form_Op}(undef, N,translator(H))
     for n in eachindex(H)
       il, ir = commonind(H[n],H[n-1]),commonind(H[n],H[n+1])
       data[n] = reg_form_Op(H[n], il, ir, ul)
@@ -29,8 +29,35 @@ end
     W = setinds(Wrf.W, new_inds)
     ileft, iright = parse_links(W)
     return reg_form_Op(W, ileft, iright, Wrf.ul)
-end
+  end
+
+  function translatecell(translator::Function, Wrb::regform_blocks, n::Integer)
+    𝕀=translatecell(translator,Wrb.𝕀,n)
+    Arf=translatecell(translator,reg_form_Op(Wrb.𝐀̂,Wrb.irA,Wrb.icA,lower),n)
+    brf=translatecell(translator,reg_form_Op(Wrb.𝐛̂,Wrb.irb,Wrb.icb,lower),n)
+    crf=translatecell(translator,reg_form_Op(Wrb.𝐜̂,Wrb.irc,Wrb.icc,lower),n)
+    drf=translatecell(translator,reg_form_Op(Wrb.𝐝̂,Wrb.ird,Wrb.icd,lower),n)
+    # Acrf=translatecell(translator,reg_form_Op(Wrb.𝐀̂𝐜̂,Wrb.ird,Wrb.icd,lower),n)
+    # Vrf=translatecell(translator,reg_form_Op(Wrb.𝐕̂,Wrb.ird,Wrb.icd,lower),n)
+   
+    rfb=regform_blocks()
+    rfb.𝕀=𝕀
+    rfb.𝐀̂=Arf.W
+    rfb.𝐛̂=brf.W
+    rfb.𝐜̂=crf.W
+    rfb.𝐝̂=drf.W
+    rfb.irA=Arf.ileft
+    rfb.icA=Arf.iright
+    rfb.irb=brf.ileft
+    rfb.icb=brf.iright
+    rfb.irc=crf.ileft
+    rfb.icc=crf.iright
+    rfb.ird=drf.ileft
+    rfb.icd=drf.iright
+    return rfb
+  end
   
+  translator(H::reg_form_iMPO)=translator(data(H))
 
   data(H::reg_form_iMPO) = H.data
   
@@ -41,7 +68,7 @@ end
   function fix_inds(Wb1::regform_blocks,Wb2::regform_blocks)
     Wb1.𝐝̂=replaceind(Wb1.𝐝̂, Wb1.icd, settags(dag(Wb2.ird),tags(Wb1.icd)))
     Wb1.icd=settags(dag(Wb2.ird),tags(Wb1.icd))
-    Wb1.𝐀̂=replaceind(Wb1.𝐀̂, Wb1.icA, settags(dag(Wb2.irA),tags(Wb1.icA)))
+    Wb1.𝐀̂=replaceind(Wb1.𝐀̂, Wb1.icA, settags(dag(Wb2.irA),tags(Wb1.icA)) )
     Wb1.icA=settags(dag(Wb2.irA),tags(Wb1.icA))
 
     Wb1.𝐜̂=replaceind(Wb1.𝐜̂, Wb1.icc, Wb1.icA)
@@ -52,15 +79,20 @@ end
     Wb1.irb=Wb1.irA
     Wb1.𝐛̂=replaceind(Wb1.𝐛̂, Wb1.icb, Wb1.icd)
     Wb1.icb=Wb1.icd
+    # check(reg_form_Op( Wb1.𝐀̂, Wb1.irA, Wb1.icA,lower))
+    @assert id( Wb1.icA)==id( Wb2.irA)
+    return Wb1
   end
 
   function ITensorMPOCompression.extract_blocks(H::reg_form_iMPO,lr::orth_type;kwargs...)
-    Wbs=ITensorMPOCompression.extract_blocks.(H,lr;kwargs...)
+    Wbsv=ITensorMPOCompression.extract_blocks.(H,lr;kwargs...)
+    Wbs=CelledVector(Wbsv,translator(H))
     N=length(Wbs)
-    for n in 1:N-1
-      fix_inds(Wbs[n],Wbs[n+1])
+    for n in 1:N
+      Wbs[n]=fix_inds(Wbs[n],Wbs[n+1])
+      # check(reg_form_Op(Wbs[n].𝐀̂,Wbs[n].irA,Wbs[n].icA,lower))
+      @assert id(Wbs[n].icA)==id(Wbs[n+1].irA)
     end
-    fix_inds(Wbs[N],Wbs[1])
     return Wbs
   end
   

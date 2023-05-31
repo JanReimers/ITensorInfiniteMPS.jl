@@ -35,6 +35,6 @@ function ITensors.orthogonalize(Hi::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
 end
 
 function ITensors.truncate(Hi::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
-    HL, HR, Ss, ss = truncate!(reg_form_iMPO(Hi))
+    HL, HR, Ss, ss = truncate!(reg_form_iMPO(Hi);kwargs...)
     return InfiniteCanonicalMPO(HL,Ss,HR),ss
 end
