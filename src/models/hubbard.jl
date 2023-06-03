@@ -9,6 +9,29 @@ function unit_cell_terms(::Model"hubbard"; t, U, V=0.0)
   return opsum
 end
 
+#  
+#  Useful for testing more complex MPOs with distant neightbour interactions.
+#  Hⱼ = Unⱼ + Σₙ tₙ(cⱼ†↑ * cⱼ₊ₙ↑ + cⱼ₊ₙ†↑ * cⱼ↓ + cⱼ†↓ * cⱼ₊ₙ↓ + cⱼ₊ₙ†↓ * cⱼ↓)
+#                Vₙnⱼ*nⱼ₊ₙ 
+#     tₙ = t/n decaying interaction strength
+#     Vₙ = V/n
+#     NNN = Number of Nearest Neightbours
+#
+
+function ITensorInfiniteMPS.unit_cell_terms(::Model"hubbardNNN"; NNN::Int64,U=0.25,t=1.0,V=0.5)
+  opsum = OpSum()
+  opsum += (U, "Nupdn", 1)
+  for n in 1:NNN
+    tn, Vn = t / n, V / n
+    opsum += -tn, "Cdagup", 1, "Cup", 1 + n
+    opsum += -tn, "Cdagup", 1 + n, "Cup", 1
+    opsum += -tn, "Cdagdn", 1, "Cdn", 1 + n
+    opsum += -tn, "Cdagdn", 1 + n, "Cdn", 1
+    opsum += Vn, "Ntot", 1, "Ntot", 1 + n
+  end
+  return opsum
+end
+
 """
 @article{PhysRevB.6.930,
   title = {Magnetic Susceptibility at Zero Temperature for the One-Dimensional Hubbard Model},

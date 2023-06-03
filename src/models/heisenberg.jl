@@ -7,6 +7,23 @@ function unit_cell_terms(::Model"heisenberg")
   return opsum
 end
 
+#  
+#  Useful for testing more complex MPOs with distant neightbour interactions.
+#  H = ΣⱼΣₙ Jₙ(½ S⁺ⱼS⁻ⱼ₊ₙ + ½ S⁻ⱼS⁺ⱼ₊ₙ + SᶻⱼSᶻⱼ₊ₙ)
+#     Jₙ = 1/n decaying interaction strength
+#     NNN = Number of Nearest Neightbours
+#
+function ITensorInfiniteMPS.unit_cell_terms(::Model"heisenbergNNN"; NNN::Int64)
+  opsum = OpSum()
+  for n in 1:NNN
+    J = 1.0 / n
+    opsum += J * 0.5, "S+", 1, "S-", 1 + n
+    opsum += J * 0.5, "S-", 1, "S+", 1 + n
+    opsum += J, "Sz", 1, "Sz", 1 + n
+  end
+  return opsum
+end
+
 """
     reference(::Model"heisenberg", ::Observable"energy"; N)
 

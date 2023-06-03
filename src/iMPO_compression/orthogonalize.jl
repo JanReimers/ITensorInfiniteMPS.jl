@@ -104,12 +104,12 @@ function orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs..
 end
 
 function ac_qx_step!(Ŵ::reg_form_Op, lr::orth_type, eps::Float64; kwargs...)
-  Q̂, R, iq, p = ac_qx(Ŵ, lr; cutoff=1e-14, qprime=true, kwargs...) # r-Q-qx qx-RL-c
+  Q̂, R, iq, Rp = ac_qx(Ŵ, lr; cutoff=1e-14, qprime=true, return_Rp=true, kwargs...) # r-Q-qx qx-RL-c
   #
   #  How far are we from RL==Id ?
   #
   if dim(forward(Ŵ, lr)) == dim(iq)
-    eta = RmI(R, p) #Different handling for dense and block-sparse
+    eta = RmI(Rp) #Different handling for dense and block-sparse
   else
     eta = 99.0 #Rank reduction occured so keep going.
   end
@@ -119,19 +119,17 @@ end
 #
 #  Evaluate norm(R-I)
 #
-RmI(R::ITensor, perms) = RmI(tensor(R), perms)
-function RmI(R::DenseTensor, perm::Vector{Int64})
-  Rmp = matrix(R)[:, perm]
-  return norm(Rmp - Matrix(LinearAlgebra.I, size(Rmp)))
+RmI(R::ITensor) = RmI(tensor(R))
+
+function RmI(R::DenseTensor)
+  return norm(R - Matrix(LinearAlgebra.I, size(R)))
 end
 
-function RmI(R::BlockSparseTensor, perms::Vector{Vector{Int64}})
-  @assert nnzblocks(R) == length(perms)
+function RmI(R::BlockSparseTensor)
   eta2 = 0.0
-  for (n, b) in enumerate(nzblocks(R))
-    bv = ITensors.blockview(R, b)
-    Rp = bv[:, perms[n]] #un-permute the columns
-    eta2 += norm(Rp - Matrix(LinearAlgebra.I, size(Rp)))^2
+  for b in nzblocks(R)
+    Rbv = ITensors.blockview(R, b)
+    eta2 += norm(Rbv - Matrix(LinearAlgebra.I, size(Rbv)))^2
   end
   return sqrt(eta2)
 end
