@@ -305,21 +305,35 @@ tests=[
   # [4,[4,1,2,3],4,-0.4081936],
 
   # medium precision, short run time.
-  [2,[1,1],4,-0.443073],
-  [4,[1,1],4,-0.443073],
-  [4,[1,1,1,1],4,-0.443073],
-  [2,[1,2],4,-0.4005530],
-  [2,[2,1],4,-0.4005530],
-  [4,[1,2],4,-0.4005530],
-  [4,[1,2,1,2],4,-0.4005530],
-  [4,[2,1,2,1],4,-0.4005530],
-  [4,[1,2,3,4],3,-0.4080177], #These last 4 should all be equal, Check MPO bond spectra
-  [4,[2,3,4,1],3,-0.4081479],
-  [4,[3,4,1,2],3,-0.4077748],
-  [4,[4,1,2,3],3,-0.4076770],
+  # [2,[1,1],4,-0.443073],
+  # [4,[1,1],4,-0.443073],
+  # [4,[1,1,1,1],4,-0.443073],
+  # [2,[1,2],4,-0.4005530],
+  # [2,[2,1],4,-0.4005530],
+  # [4,[1,2],4,-0.4005530],
+  # [4,[1,2,1,2],4,-0.4005530],
+  # [4,[2,1,2,1],4,-0.4005530],
+  # [4,[1,2,3,4],3,-0.4080177], #These last 4 should all be equal, Check MPO bond spectra
+  # [4,[2,3,4,1],3,-0.4081479],
+  # [4,[3,4,1,2],3,-0.4077748],
+  # [4,[4,1,2,3],3,-0.4076770],
+
+  # Low precision, shortest run time.
+  [2,[1,1],2,-0.4410585],
+  [4,[1,1],2,-0.4410585],
+  [4,[1,1,1,1],2,-0.4410585],
+  [2,[1,2],2,-0.3990024],
+  [2,[2,1],2,-0.3990024],
+  [4,[1,2],2,-0.3990024],
+  [4,[1,2,1,2],2,-0.3990024],
+  [4,[2,1,2,1],2,-0.3990024],
+  [4,[1,2,3,4],1,-0.3835463], #These last 4 should all be equal, Check MPO bond spectra
+  [4,[2,3,4,1],1,-0.3886438],
+  [4,[3,4,1,2],1,-0.3833354],
+  [4,[4,1,2,3],1,-0.3833374],
 ]
 
-@testset verbose=true "vumps for rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO,InfiniteMPOMatrix], qns in [true], alg=["sequential","parallel"]
+@testset verbose=false "vumps for rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO,InfiniteMPOMatrix], qns in [true], alg=["sequential","parallel"]
   initstate(n) = isodd(n) ? "↑" : "↓"
   N,NNNs,n_expansions,e_expected=test[1],test[2],test[3],test[4]
   # qns=true
@@ -345,8 +359,8 @@ tests=[
   μᴿ,σᴿ=mean_var(eᴿ)
   μ,σ=mean_var(vcat(eᴸ,eᴿ))
   # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
-  # @show μ,σ
   # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @show μ,μ-e_expected
   @test σᴸ < eps
   @test σᴿ < eps
   @test σ < eps
@@ -385,9 +399,9 @@ end
   μᴸ,σᴸ=mean_var(eᴸ)
   μᴿ,σᴿ=mean_var(eᴿ)
   μ,σ=mean_var(vcat(eᴸ,eᴿ))
-  @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
-  # @show μ,σ
-  @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @show μ,μ-e_expected
   @test σᴸ < eps
   @test σᴿ < eps
   @test σ < eps
@@ -423,9 +437,9 @@ end
   μᴸ,σᴸ=mean_var(eᴸ)
   μᴿ,σᴿ=mean_var(eᴿ)
   μ,σ=mean_var(vcat(eᴸ,eᴿ))
-  @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
-  # @show μ,σ
-  @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @show μ,μ-e_expected
   @test σᴸ < eps
   @test σᴿ < eps
   @test σ < eps
@@ -461,9 +475,9 @@ end
   μᴸ,σᴸ=mean_var(eᴸ)
   μᴿ,σᴿ=mean_var(eᴿ)
   μ,σ=mean_var(vcat(eᴸ,eᴿ))
-  @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
-  # @show μ,σ
-  @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @show μ,μ-e_expected
   @test σᴸ < eps
   @test σᴿ < eps
   @test σ < eps
