@@ -159,6 +159,7 @@ function tdvp(
   maxiter=10,
   tol=1e-8,
   outputlevel=0,
+  return_e=false,
   multisite_update_alg="sequential",
   time_step,
   solver_tol=(x -> x / 100),
@@ -171,6 +172,7 @@ function tdvp(
     flush(stdout)
     flush(stderr)
   end
+  eᴸ, eᴿ=0,0
   for iter in 1:maxiter
     iteration_time = @elapsed ψ, (eᴸ, eᴿ) = tdvp_iteration(
       solver,
@@ -201,7 +203,11 @@ function tdvp(
       break
     end
   end
-  return ψ
+  if return_e
+    return ψ, (eᴸ, eᴿ)
+  else
+    return ψ
+  end
 end
 
 function vumps_solver(M, time_step, v₀, solver_tol, eager=true)
