@@ -254,6 +254,16 @@ end
   end
 end
 
+#
+# Testing for non-rectangular MPOs using Heisenberg model with different number of neighbouring interactions
+# for each site in the unit cell.  This is supposed to trip up any code assumes iMPO site ops (Ws) are always square.
+# For now we go step by testing 1) raw iMPOs, 2) gauge fixed only, 3) orthogonalized (which requires gauge fixing), 
+# 4) truncated (whihc requires orthogonalizing)
+# These take a long time to run.  In future we should only subspace expand to D=4 to speed things up.  
+# THis will change all the expected energies.
+#
+import ITensorInfiniteMPS: reg_form_iMPO, gauge_fix!,get_Dw
+
 #  
 #     NNN[i] = Number of Nearest Neightbours for site i in the unit cell
 #
@@ -337,6 +347,123 @@ tests=[
   # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
   # @show μ,σ
   # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @test σᴸ < eps
+  @test σᴿ < eps
+  @test σ < eps
+  @test μᴸ ≈ e_expected atol = eps
+  @test μᴿ ≈ e_expected atol = eps
+  @test μ ≈ e_expected atol = eps
+  
+end
+
+
+@testset verbose=true "vumps for gauge fixed rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO], qns in [true], alg=["sequential","parallel"]
+  initstate(n) = isodd(n) ? "↑" : "↓"
+  N,NNNs,n_expansions,e_expected=test[1],test[2],test[3],test[4]
+  # qns=true
+  tol=1e-5
+  vumps_kwargs = (
+      multisite_update_alg=alg,
+      tol=tol,
+      maxiter=50,
+      outputlevel=0,
+      return_e=true,
+      time_step=-Inf,
+    )
+  sites = infsiteinds("S=1/2", N; initstate, conserve_qns=qns)
+  ψ = InfMPS(sites, initstate)
+  H = H_type(Model"heisenbergNNNs"(), sites; NNNs=NNNs)
+  Hrf=reg_form_iMPO(H)
+  gauge_fix!(Hrf)
+  Hmpo=InfiniteMPO(Hrf)
+  ψ,(eᴸ, eᴿ) = tdvp(Hmpo, ψ; vumps_kwargs...)
+  for _ in 1:n_expansions
+      ψ = subspace_expansion(ψ, Hmpo; cutoff=1e-8,maxdim=32)
+      ψ,(eᴸ, eᴿ) = tdvp(Hmpo, ψ; vumps_kwargs...)      
+  end
+  eps=2e-6*N
+  μᴸ,σᴸ=mean_var(eᴸ)
+  μᴿ,σᴿ=mean_var(eᴿ)
+  μ,σ=mean_var(vcat(eᴸ,eᴿ))
+  @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μ,σ
+  @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @test σᴸ < eps
+  @test σᴿ < eps
+  @test σ < eps
+  @test μᴸ ≈ e_expected atol = eps
+  @test μᴿ ≈ e_expected atol = eps
+  @test μ ≈ e_expected atol = eps
+  
+end
+
+@testset verbose=true "vumps for orthongonalized rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO], qns in [true], alg=["sequential","parallel"]
+  initstate(n) = isodd(n) ? "↑" : "↓"
+  N,NNNs,n_expansions,e_expected=test[1],test[2],test[3],test[4]
+  tol=1e-5
+  vumps_kwargs = (
+      multisite_update_alg=alg,
+      tol=tol,
+      maxiter=50,
+      outputlevel=0,
+      return_e=true,
+      time_step=-Inf,
+    )
+  sites = infsiteinds("S=1/2", N; initstate, conserve_qns=qns)
+  ψ = InfMPS(sites, initstate)
+  H = H_type(Model"heisenbergNNNs"(), sites; NNNs=NNNs)
+  Ho=orthogonalize(H)
+  @show get_Dw(Ho.AR)
+  ψ,(eᴸ, eᴿ) = tdvp(Ho, ψ; vumps_kwargs...)
+  for _ in 1:n_expansions
+      ψ = subspace_expansion(ψ, Ho; cutoff=1e-8,maxdim=32)
+      ψ,(eᴸ, eᴿ) = tdvp(Ho, ψ; vumps_kwargs...)      
+  end
+  eps=2e-6*N
+  μᴸ,σᴸ=mean_var(eᴸ)
+  μᴿ,σᴿ=mean_var(eᴿ)
+  μ,σ=mean_var(vcat(eᴸ,eᴿ))
+  @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μ,σ
+  @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @test σᴸ < eps
+  @test σᴿ < eps
+  @test σ < eps
+  @test μᴸ ≈ e_expected atol = eps
+  @test μᴿ ≈ e_expected atol = eps
+  @test μ ≈ e_expected atol = eps
+  
+end
+
+@testset verbose=true "vumps for truncated rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO], qns in [true], alg=["sequential","parallel"]
+  initstate(n) = isodd(n) ? "↑" : "↓"
+  N,NNNs,n_expansions,e_expected=test[1],test[2],test[3],test[4]
+  tol=1e-5
+  vumps_kwargs = (
+      multisite_update_alg=alg,
+      tol=tol,
+      maxiter=50,
+      outputlevel=0,
+      return_e=true,
+      time_step=-Inf,
+    )
+  sites = infsiteinds("S=1/2", N; initstate, conserve_qns=qns)
+  ψ = InfMPS(sites, initstate)
+  H = H_type(Model"heisenbergNNNs"(), sites; NNNs=NNNs)
+  Ht,ss=truncate(H)
+  @show get_Dw(Ht.AR)
+  ψ,(eᴸ, eᴿ) = tdvp(Ht, ψ; vumps_kwargs...)
+  for _ in 1:n_expansions
+      ψ = subspace_expansion(ψ, Ht; cutoff=1e-8,maxdim=32)
+      ψ,(eᴸ, eᴿ) = tdvp(Ht, ψ; vumps_kwargs...)      
+  end
+  eps=2e-6*N
+  μᴸ,σᴸ=mean_var(eᴸ)
+  μᴿ,σᴿ=mean_var(eᴿ)
+  μ,σ=mean_var(vcat(eᴸ,eᴿ))
+  @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μ,σ
+  @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
   @test σᴸ < eps
   @test σᴿ < eps
   @test σ < eps
