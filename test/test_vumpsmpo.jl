@@ -254,4 +254,96 @@ end
   end
 end
 
+#  
+#     NNN[i] = Number of Nearest Neightbours for site i in the unit cell
+#
+function ITensorInfiniteMPS.unit_cell_terms(::Model"heisenbergNNNs"; NNNs::Vector{Int64})
+  opsum = OpSum()
+  for i in eachindex(NNNs)
+      for n in 1:NNNs[i]
+          J = 1.0 / n
+          opsum += J * 0.5, "S+", i, "S-", i + n
+          opsum += J * 0.5, "S-", i, "S+", i + n
+          opsum += J, "Sz", i, "Sz", i + n
+      end
+  end 
+  
+  return opsum
+end
+
+function mean_var(e::Vector{Float64})
+  n=length(e)
+  μ=sum(e)/n
+  σ=n>1 ? sqrt(sum((e .- μ) .^ 2) / (n - 1)) : 0.0
+  return μ,σ
+end
+
+# exact e=-0.443147181 
+tests=[
+  # Higher precision versions.
+  # [2,[1,1],5,-0.4431377],
+  # [4,[1,1],5,-0.4431377],
+  # [4,[1,1,1,1],5,-0.4431377],
+  # [2,[1,2],5,-0.4005882],
+  # [2,[2,1],5,-0.4005882],
+  # [4,[1,2],5,-0.4005882],
+  # [4,[1,2,1,2],5,-0.4005882],
+  # [4,[2,1,2,1],5,-0.4005882],
+  # [4,[1,2,3,4],4,-0.4081936],
+  # [4,[2,3,4,1],4,-0.4081936],
+  # [4,[3,4,1,2],4,-0.4081936],
+  # [4,[4,1,2,3],4,-0.4081936],
+
+  # medium precision, short run time.
+  [2,[1,1],4,-0.443073],
+  [4,[1,1],4,-0.443073],
+  [4,[1,1,1,1],4,-0.443073],
+  [2,[1,2],4,-0.4005530],
+  [2,[2,1],4,-0.4005530],
+  [4,[1,2],4,-0.4005530],
+  [4,[1,2,1,2],4,-0.4005530],
+  [4,[2,1,2,1],4,-0.4005530],
+  [4,[1,2,3,4],3,-0.4080177], #These last 4 should all be equal, Check MPO bond spectra
+  [4,[2,3,4,1],3,-0.4081479],
+  [4,[3,4,1,2],3,-0.4077748],
+  [4,[4,1,2,3],3,-0.4076770],
+]
+
+@testset verbose=true "vumps for rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO,InfiniteMPOMatrix], qns in [true], alg=["sequential","parallel"]
+  initstate(n) = isodd(n) ? "↑" : "↓"
+  N,NNNs,n_expansions,e_expected=test[1],test[2],test[3],test[4]
+  # qns=true
+  tol=1e-5
+  vumps_kwargs = (
+      multisite_update_alg=alg,
+      tol=tol,
+      maxiter=50,
+      outputlevel=0,
+      return_e=true,
+      time_step=-Inf,
+    )
+  sites = infsiteinds("S=1/2", N; initstate, conserve_qns=qns)
+  ψ = InfMPS(sites, initstate)
+  Hmpo = H_type(Model"heisenbergNNNs"(), sites; NNNs=NNNs)
+  ψ,(eᴸ, eᴿ) = tdvp(Hmpo, ψ; vumps_kwargs...)
+  for _ in 1:n_expansions
+      ψ = subspace_expansion(ψ, Hmpo; cutoff=1e-8,maxdim=32)
+      ψ,(eᴸ, eᴿ) = tdvp(Hmpo, ψ; vumps_kwargs...)      
+  end
+  eps=2e-6*N
+  μᴸ,σᴸ=mean_var(eᴸ)
+  μᴿ,σᴿ=mean_var(eᴿ)
+  μ,σ=mean_var(vcat(eᴸ,eᴿ))
+  # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
+  # @show μ,σ
+  # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  @test σᴸ < eps
+  @test σᴿ < eps
+  @test σ < eps
+  @test μᴸ ≈ e_expected atol = eps
+  @test μᴿ ≈ e_expected atol = eps
+  @test μ ≈ e_expected atol = eps
+  
+end
+
 nothing
