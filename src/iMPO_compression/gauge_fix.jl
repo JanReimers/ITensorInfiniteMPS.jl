@@ -25,7 +25,14 @@ end
 function ITensorInfiniteMPS.translatecell(::Function, i::Int64, ::Integer)
   return i
 end
+function ITensorInfiniteMPS.translatecell(::Function, ur::UnitRange{Int64}, ::Integer)
+  return ur
+end
 
+#
+#  This code implements the algo decribed in the section "3.1 Gauge fixing for Ac-block respecting decomposition"
+#  in the document  TechnicalDetails.pdf
+#
 function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   @assert length(Hrf)==length(Wbs)
   @assert translator(Hrf)==translator(Wbs)
@@ -34,68 +41,51 @@ function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   A0s = CelledVector{Matrix{Float64}}(undef,N)
   b0s = Vector{Float64}()
   c0s = Vector{Float64}()
-  combiner_right_s=Vector{ITensor}() #Combiners
-  i_b_right_column_s=Vector{Index}() #extra dim=1 indices on b and c
-  n, nr, nc = 0, 0, 0
-  irb, icb = CelledVector{Int64}(undef,N), CelledVector{Int64}(undef,N)
-  ir, ic = 1, 1
+  rrs= CelledVector{UnitRange{Int64}}(undef,N) #row ranges
+  crs= CelledVector{UnitRange{Int64}}(undef,N) #col ranges
+  right_combiners=Vector{ITensor}() #Combiners
+  right_indices=Vector{Index}() #extra dim=1 indices on b and c
+  n, nnr, nnc = 0, 0, 0
+  ir,ic=1,1
   for (W,Wb) in zip(Hrf,Wbs)
     check(W)
     n+=1
-    cl,cr=combiner(Wb.𝐀̂.ileft;tags="cl,ir=$ir"),combiner(Wb.𝐀̂.iright;tags="cr,ic=$ic")
+    cl,cr=combiner(Wb.𝐀̂.ileft;tags="cl,n=$n"),combiner(Wb.𝐀̂.iright;tags="cr,n=$n")
     icl,icr=combinedind(cl),combinedind(cr)
-    A_0=A0(Wb)*cl*cr #Project the 𝕀 subspace, should be just one block.
-    # push!(A0s,sparse(matrix(icl, A_0, icr)))
-    A0s[n]=matrix(icl, A_0, icr)
-    b_0=b0(Wb)*cl
-    c_0=c0(Wb)*cr
-    append!(b0s, vector_o2(b_0))
-    append!(c0s, vector_o2(c_0))
-    irb[n]=ir
-    icb[n]=ic
-    # push!(irb, ir)
-    # push!(icb, ic)
-    push!(combiner_right_s,cr)
-    push!(i_b_right_column_s,Wb.𝐛̂.iright)
-    
-    nr += size(A_0, 1)
-    nc += size(A_0, 2)
-    ir += size(A_0, 1)
-    ic += size(A_0, 2)
-    # @show nr nc ir ic
+    #The combiners should project out the I block.  All other blocks will be zero.
+    A0s[n]=matrix(icl,A0(Wb)*cl*cr, icr)
+    append!(b0s, vector_o2(b0(Wb)*cl))
+    append!(c0s, vector_o2(c0(Wb)*cr))
+    # These are used to rebuild ITensors below.
+    push!(right_combiners,cr)
+    push!(right_indices,Wb.𝐛̂.iright)
+    #
+    #  Track row/column blocks and total number of rows/cols.
+    #
+    nr,nc=size(A0s[n])
+    nnr += nr
+    nnc += nc
+    rrs[n]=ir:ir+nr-1
+    crs[n]=ic:ic+nc-1
+    ir+=nr
+    ic+=nc
   end
-  @assert nr == nc
-  nn = nr
-  # N = length(A0s)
+  @assert nnr == nnc #individual site A0s are not nessecarily square, but the whole/unit-cell system should be
+  nn = nnr
+  #
+  #  Fill out the Ms and Mt matrices
+  #
   Ms, Mt = spzeros(nn, nn), spzeros(nn, nn)
-  # @show N nn irb icb
-  irs,irt,ic=1,1,1 #Cumulative row and col indexes
   for n in eachindex(A0s)
-    nr, nc = size(A0s[n])
-    nrp,ncp=size(A0s[n+1])
-    irp= irs+nr
-    icp= ic+nc
-    # @show nr nc irs irt ic irp icp
-    if irp>nn
-      irp-=nn
-    end
-    if icp>nn
-      icp-=nn
-    end
-    #
-    #  These system will generally not bee so big that sparse improves performance significantly.
-    #
-    #droptol!(A0s[n], 1e-15)
-
-    # @show irp icp 
-    Ms[irs:irs+nr - 1, ic:ic+nc- 1] = A0s[n]
-    Ms[irp:irp+nrp-1, ic:ic+nc- 1] -= sparse(LinearAlgebra.I, nrp, nc) #For Ncell=1 they overlap, hence we use -=
-    Mt[irt:irt+nrp - 1, ic:ic+nc- 1] = sparse(LinearAlgebra.I, nrp, nc)
-    Mt[irt:irt+nrp-1, icp:icp+ncp- 1] -= A0s[n+1] #For Ncell=1 they overlap, hence we use -=
-
-    irs+=size(A0s[n],1)
-    irt+=size(A0s[n+1],1)
-    ic+=size(A0s[n],2)
+    nc = size(A0s[n],2)
+    nrp=size(A0s[n+1],1)
+    # Ms and Mt have different row blocks.  Mt's row blocks are shifted by one block.
+    rrst= rrs[n+1].-rrs[1].stop
+    rrst= n<N ? rrst : rrst.+nn
+    Ms[rrs[n], crs[n]] = sparse(A0s[n])
+    Ms[rrs[n+1],crs[n]] -= sparse(LinearAlgebra.I, nrp, nc) #For Ncell=1 they overlap, hence we use -=
+    Mt[rrst, crs[n]] = sparse(LinearAlgebra.I, nrp, nc)
+    Mt[rrst, crs[n+1]] -= sparse(A0s[n+1]) #For Ncell=1 they overlap, hence we use -=
   end
   # display(Array(Ms))
   # display(Array(Mt))
@@ -103,28 +93,23 @@ function Solve_b0c0(Hrf::reg_form_iMPO,Wbs::CelledVector{regform_blocks})
   t = Array(Base.transpose(Base.transpose(Mt) \ c0s))
   @assert norm(Ms * s - b0s) < 1e-15 * n
   @assert norm(Base.transpose(t * Mt) - c0s) < 1e-15 * n
-  @assert size(t,1)==1 #t ends up as a 1xN matrix becuase of all the transposing.
-  ss,ts=Vector{ITensor}(),Vector{ITensor}()
-  irs,irt,ic=1,1,1 #Cumulative row and col indexes
+  @assert size(t,1)==1 #t ends up as a 1xN matrix because of all the transposing.
+  
+  ss,ts=CelledVector{ITensor}(undef,N,translator(Hrf)),CelledVector{ITensor}(undef,N,translator(Hrf))
   for n in 1:N
-    nr, nc = size(A0s[n])
-    sn=s[ic:ic+nc - 1]
-    tn=t[1,ic:ic + nc - 1]
-    icr=combinedind(combiner_right_s[n]) 
-    @assert dim(i_b_right_column_s[n])==1
-    # @show n sn icr icrp
-    snT=ITensor(Float64,sn,icr,dag(i_b_right_column_s[n]))
-    tnT=ITensor(Float64,tn,icr,dag(i_b_right_column_s[n]))
-    snT=dag(snT*dag(combiner_right_s[n]))
-    tnT=tnT*dag(combiner_right_s[n])
-    # @show inds(snT) inds(tnT)
-    push!(ss,snT)
-    push!(ts,tnT)
-    irs+=size(A0s[n],1)
-    irt+=size(A0s[n+1],1)
-    ic+=size(A0s[n],2)
+    # make suitable indices
+    cr=right_combiners[n]
+    il1=combinedind(cr) 
+    il2=dag(right_indices[n])
+    @assert dim(il2)==1
+    # Get data into an ITensor
+    snT=ITensor(Float64,s[crs[n]],il1,il2)
+    tnT=ITensor(Float64,t[1,crs[n]],il1,il2)
+    # undo the combine operation and save.
+    ss[n]=dag(snT*dag(cr))
+    ts[n]=tnT*dag(cr)
   end
-  return CelledVector(ss,translator(Hrf)),CelledVector(ts,translator(Hrf))
+  return ss,ts
 end
 
 function gauge_fix_Op!(
