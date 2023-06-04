@@ -79,6 +79,7 @@ end
     N=length(Wbs)
     for n in 1:N
       Wbs[n]=fix_inds(Wbs[n],Wbs[n+1])
+      # check(reg_form_Op(Wbs[n].𝐀̂,Wbs[n].irA,Wbs[n].icA,lower))
       @assert id(Wbs[n].𝐀̂.iright)==id(Wbs[n+1].𝐀̂.ileft)
     end
     return Wbs
