@@ -108,4 +108,103 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
   end
 
 end
+
+function ITensorInfiniteMPS.unit_cell_terms(::Model"heisenbergNNNs"; NNNs::Vector{Int64})
+  opsum = OpSum()
+  for i in eachindex(NNNs)
+      for n in 1:NNNs[i]
+          J = 1.0 / n
+          opsum += J * 0.5, "S+", i, "S-", i + n
+          opsum += J * 0.5, "S-", i, "S+", i + n
+          opsum += J, "Sz", i, "Sz", i + n
+      end
+  end 
+  
+  return opsum
+end
+
+function delta(s1::Spectrum,s2::Spectrum)
+  s1=eigs(s1)
+  s2=eigs(s2)
+  ds=.√(s1)-.√(s2)
+  return sqrt(sum(ds.^2))
+end
+
+@testset "Look at rectangular iMPO bond spectra" begin
+  initstate(n) = isodd(n) ? "↑" : "↓"
+  eps=1e-14
+  N=4
+  sites = infsiteinds("S=1/2",N; initstate, conserve_qns=true)
+  H1234 = InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[1,2,3,4])
+  H2341 = InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[2,3,4,1])
+  H3412 = InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[3,4,1,2])
+  H4123 = InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[4,1,2,3])
+  H4321 = InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[4,3,2,1])
+  H3214 = InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[3,2,1,4])
+
+  H1234t,BondSpectrumsH1234 = truncate(H1234) #Use default cutoff,C is now diagonal
+  @test check_ortho(H1234t) #AL is left ortho && AR is right ortho
+  @test check_gauge(H1234t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  # @show BondSpectrumsH1234
+
+  H2341t,BondSpectrumsH2341 = truncate(H2341) #Use default cutoff,C is now diagonal
+  @test check_ortho(H2341t) #AL is left ortho && AR is right ortho
+  @test check_gauge(H2341t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  # @show BondSpectrumsH2341
+
+  H3412t,BondSpectrumsH3412 = truncate(H3412) #Use default cutoff,C is now diagonal
+  @test check_ortho(H3412t) #AL is left ortho && AR is right ortho
+  @test check_gauge(H3412t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  # @show BondSpectrumsH3412
+
+  H4123t,BondSpectrumsH4123 = truncate(H4123) #Use default cutoff,C is now diagonal
+  @test check_ortho(H4123t) #AL is left ortho && AR is right ortho
+  @test check_gauge(H4123t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  # @show BondSpectrumsH4123
+
+  H4321t,BondSpectrumsH4321 = truncate(H4321) #Use default cutoff,C is now diagonal
+  @test check_ortho(H4321t) #AL is left ortho && AR is right ortho
+  @test check_gauge(H4321t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  # @show BondSpectrumsH4321
+
+  H3214t,BondSpectrumsH3214 = truncate(H3214) #Use default cutoff,C is now diagonal
+  @test check_ortho(H3214t) #AL is left ortho && AR is right ortho
+  @test check_gauge(H3214t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  # @show BondSpectrumsH3214
+
+  
+  @test delta(BondSpectrumsH1234[1],BondSpectrumsH2341[4]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[1],BondSpectrumsH3412[3]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[1],BondSpectrumsH4123[2]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[2],BondSpectrumsH2341[1]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[2],BondSpectrumsH3412[4]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[2],BondSpectrumsH4123[3]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[3],BondSpectrumsH2341[2]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[3],BondSpectrumsH3412[1]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[3],BondSpectrumsH4123[4]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[4],BondSpectrumsH2341[3]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[4],BondSpectrumsH3412[2]) ≈ 0.0 atol = eps
+  @test delta(BondSpectrumsH1234[4],BondSpectrumsH4123[1]) ≈ 0.0 atol = eps
+
+
+  _,bs1114 = truncate(InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[1,1,1,4]))
+  _,bs1141 = truncate(InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[1,1,4,1]))
+  _,bs1411 = truncate(InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[1,4,1,1]))
+  _,bs4111 = truncate(InfiniteMPO(Model"heisenbergNNNs"(), sites;NNNs=[4,1,1,1]))
+  
+  @test delta(bs1114[4],bs1141[3]) ≈ 0.0 atol = eps
+  @test delta(bs1114[4],bs1411[2]) ≈ 0.0 atol = eps
+  @test delta(bs1114[4],bs4111[1]) ≈ 0.0 atol = eps
+  @test delta(bs1114[3],bs1141[2]) ≈ 0.0 atol = eps
+  @test delta(bs1114[3],bs1411[1]) ≈ 0.0 atol = eps
+  @test delta(bs1114[3],bs4111[4]) ≈ 0.0 atol = eps
+  @test delta(bs1114[2],bs1141[1]) ≈ 0.0 atol = eps
+  @test delta(bs1114[2],bs1411[4]) ≈ 0.0 atol = eps
+  @test delta(bs1114[2],bs4111[3]) ≈ 0.0 atol = eps
+  @test delta(bs1114[1],bs1141[4]) ≈ 0.0 atol = eps
+  @test delta(bs1114[1],bs1411[3]) ≈ 0.0 atol = eps
+  @test delta(bs1114[1],bs4111[2]) ≈ 0.0 atol = eps
+
+end
+
 nothing
