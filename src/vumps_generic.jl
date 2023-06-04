@@ -229,7 +229,7 @@ function vumps(
   flush(stdout)
   flush(stderr)
   return tdvp(
-    vumps_solver, args...; time_step=time_step, solver_tol=solver_tol, eager, kwargs...
+    vumps_solver, args...; time_step=time_step, solver_tol=solver_tol, eager, outputlevel, kwargs...
   )
 end
 
@@ -248,5 +248,5 @@ function tdvp(args...; time_step, solver_tol=(x -> x / 100), eager=true, outputl
   else
     error("Time step $time_step not supported.")
   end
-  return tdvp(solver, args...; time_step=time_step, solver_tol=solver_tol, eager, kwargs...)
+  return tdvp(solver, args...; time_step=time_step, solver_tol=solver_tol, eager, outputlevel,kwargs...)
 end
