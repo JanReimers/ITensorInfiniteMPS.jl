@@ -5,6 +5,7 @@
 
 # TODO: store the cell 1 as an MPS
 # Implement `getcell(::InfiniteMPS, n::Integer) -> MPS`
+# See src/abstractinfinitemps.jl for various contrcutor definitions.
 mutable struct InfiniteMPS <: AbstractInfiniteMPS
   data::CelledVector{ITensor}
   llim::Int #RealInfinity

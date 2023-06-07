@@ -14,7 +14,7 @@ ITensors.data(H::InfiniteCanonicalMPO)=H.AL
 ITensorInfiniteMPS.isreversed(::InfiniteCanonicalMPO)=false
 Base.getindex(H::InfiniteCanonicalMPO, n::Int64)=getindex(H.AL,n)
 
-function ITensorMPOCompression.check_ortho(H::InfiniteCanonicalMPO)::Bool
+function check_ortho(H::InfiniteCanonicalMPO)::Bool
     return check_ortho(H.AL,left) && check_ortho(H.AR,right)
 end
 

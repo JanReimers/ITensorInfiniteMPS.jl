@@ -3,8 +3,16 @@ using ITensorMPOCompression
 using ITensorInfiniteMPS
 using Revise
 
-import ITensorInfiniteMPS: reg_form_iMPO
+import ITensorInfiniteMPS: reg_form_iMPO, truncate
 import ITensorMPOCompression: gauge_fix!, is_gauge_fixed
+
+function merge_blocks(H::InfiniteMPO)
+  cbs=map(n->combiner(linkind(H,n)), eachindex(H))
+  cbs_cv=CelledVector{ITensor}(cbs,translator(H))
+  return InfiniteMPO(map(n->dag(cbs_cv[n-1])*H[n]*cbs_cv[n],eachindex(H)))
+end
+
+spaces(H::InfiniteMPO)=map(n->length(space(linkind(H,n))),eachindex(H))
 
 include("../../test/hamiltonians/fqhe.jl")
 
@@ -28,14 +36,18 @@ Hi=InfiniteMPO(Hm)
 
 ITensors.checkflux.(Hi)
 
-@show get_Dw(Hi)
-Hc=orthogonalize(Hi)
-@show get_Dw(Hc.AL)
-Ht,BondSpectrums = truncate(Hi)
-@show get_Dw(Ht.AL)
+@show get_Dw(Hi) spaces(Hi)
+
+Hc=merge_blocks(Hi)
+@show get_Dw(Hc) spaces(Hc)
+
+Ho=orthogonalize(Hi)
+@show get_Dw(Ho.AL) spaces(Ho.AL)
+Ht,BondSpectrums = ITensors.truncate(Hi) #Warning about interferance with Base.truncate(file,n)
+@show get_Dw(Ht.AL) spaces(Ht.AL)
 @show BondSpectrums
-Ht,BondSpectrums = truncate(Hi;cutoff=1e-10)
-@show get_Dw(Ht.AL)
+Ht,BondSpectrums = ITensors.truncate(Hi;cutoff=1e-10)
+@show get_Dw(Ht.AL) spaces(Ht.AL)
 @show BondSpectrums
 
 nothing
