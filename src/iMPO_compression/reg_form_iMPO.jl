@@ -87,7 +87,7 @@ end
   
   Base.length(H::reg_form_iMPO) = length(H.data)
   function Base.reverse(H::reg_form_iMPO)
-    return reg_form_iMPO(Base.reverse(H.data),H.reverse, H.ul)
+    return reg_form_iMPO(reverse(H.data),H.reverse, H.ul)
   end
   Base.iterate(H::reg_form_iMPO, args...) = iterate(H.data, args...)
   Base.getindex(H::reg_form_iMPO, n::Integer) = getindex(H.data, n)

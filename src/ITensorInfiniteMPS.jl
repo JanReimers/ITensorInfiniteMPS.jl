@@ -25,14 +25,14 @@ using SplitApplyCombine
 using ITensors.NDTensors: eachdiagblock
 using KrylovKit: eigsolve, linsolve, exponentiate
 
-import Base: getindex, length, setindex!, +, -, *
+import Base: getindex, length, setindex!, +, -, *, truncate
 
 import ITensors: AbstractMPS, ⊕, permute, setinds
 
 import ITensorMPOCompression: @mpoc_assert, parse_links
 import ITensorMPOCompression: orth_type, reg_form, reg_form_Op, is_regular_form, check
 import ITensorMPOCompression: regform_blocks, extract_blocks,  A0, b0, c0, vector_o2, set_𝐛̂_block!, set_𝐜̂_block!, set_𝐝̂_block!
-import ITensorMPOCompression: is_gauge_fixed, ac_qx, forward, redim, grow
+import ITensorMPOCompression: is_gauge_fixed, ac_qx, forward, redim, grow, check_ortho
 
 
 
@@ -94,6 +94,7 @@ export Cell,
   translatecell,
   translatecelltags,
   translator,
+  truncate,
   tdvp,
   vumps,
   finite_mps,
