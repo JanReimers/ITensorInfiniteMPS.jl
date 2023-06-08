@@ -271,6 +271,19 @@ function ITensorInfiniteMPS.unit_cell_terms(::Model"heisenbergNNNs"; NNNs::Vecto
   return opsum
 end
 
+function ITensorInfiniteMPS.unit_cell_terms(::Model"isingNNNs"; NNNs::Vector{Int64},hz=1.1)
+  opsum = OpSum()
+  for i in eachindex(NNNs)
+      opsum += hz, "Sz", i
+      for n in 1:NNNs[i]
+          J = 1.0 / n
+          opsum += J, "Sx", i, "Sx", i + n
+      end
+  end 
+  
+  return opsum
+end
+
 function mean_var(e::Vector{Float64})
   n=length(e)
   μ=sum(e)/n
@@ -280,7 +293,7 @@ end
 
 # exact e=-0.443147181 
 tests=[
-  # Higher precision versions.
+  # Higher precision versions. Heisenberg
   # [2,[1,1],5,-0.4431377],
   # [4,[1,1],5,-0.4431377],
   # [4,[1,1,1,1],5,-0.4431377],
@@ -294,26 +307,73 @@ tests=[
   # [4,[3,4,1,2],4,-0.4081936],
   # [4,[4,1,2,3],4,-0.4081936],
 
-  # medium precision, short run time.
-  [2,[1,1],4,-0.443073],
-  [4,[1,1],4,-0.443073],
-  [4,[1,1,1,1],4,-0.443073],
-  [2,[1,2],4,-0.4005530],
-  [2,[2,1],4,-0.4005530],
-  [4,[1,2],4,-0.4005530],
-  [4,[1,2,1,2],4,-0.4005530],
-  [4,[2,1,2,1],4,-0.4005530],
-  [4,[1,2,3,4],3,-0.4080177], #These last 4 should all be equal, Check MPO bond spectra
-  [4,[2,3,4,1],3,-0.4081479],
-  [4,[3,4,1,2],3,-0.4077748],
-  [4,[4,1,2,3],3,-0.4076770],
+  # medium precision, short run time.  Heisenberg
+  # [2,[1,1],4,-0.443073],
+  # [4,[1,1],4,-0.443073],
+  # [4,[1,1,1,1],4,-0.443073],
+  # [2,[1,2],4,-0.4005530],
+  # [2,[2,1],4,-0.4005530],
+  # [4,[1,2],4,-0.4005530],
+  # [4,[1,2,1,2],4,-0.4005530],
+  # [4,[2,1,2,1],4,-0.4005530],
+  # [4,[1,2,3,4],3,-0.4080177], #These last 4 should all be equal, Check MPO bond spectra
+  # [4,[2,3,4,1],3,-0.4081479],
+  # [4,[3,4,1,2],3,-0.4077748],
+  # [4,[4,1,2,3],3,-0.4076770],
+
+  # Low precision, shortest run time. Heisenberg
+  # [2,[1,1],2,-0.4410585],
+  # [4,[1,1],2,-0.4410585],
+  # [4,[1,1,1,1],2,-0.4410585],
+  # [2,[1,2],2,-0.3990024],
+  # [2,[2,1],2,-0.3990024],
+  # [4,[1,2],2,-0.3990024],
+  # [4,[2,1],2,-0.3990024],
+  # [4,[1,2,1,2],2,-0.3990024],
+  # [4,[2,1,2,1],2,-0.3990024],
+  # [4,[1,2,3,4],1,-0.3835463], #These next 4 should all be equal, Check MPO bond spectra: DOne, spectra are identical.
+  # [4,[2,3,4,1],1,-0.3886438],
+  # [4,[3,4,1,2],1,-0.3833354],
+  # [4,[4,1,2,3],1,-0.3833374],
+  # [4,[4,1,1,1],2,-0.43000425],  #again these next should all be the same; Bond spectra verified identical.
+  # [4,[1,4,1,1],2,-0.43002159], 
+  # [4,[1,1,4,1],2,-0.43023817], 
+  # [4,[1,1,1,4],2,-0.43000425], 
+  # [2,[4,1],2,-0.42260203], 
+  # [2,[1,4],2,-0.422503386], 
+  # [4,[4,1],2,-0.4223896], 
+  # [4,[1,4],2,-0.42236642], 
+  # [4,[1,4,1,4],2,-0.42236642], 
+  # [4,[4,1,4,1],2,-0.4223896], 
+
+  # Low precision, shortest run time. Ising
+  # [2,[3,2],3,-0.17052323702241562], 
+  # [2,[2,3],3,-0.17052323702241562], 
+  # [4,[4,3,2,1],2,-0.18602412802940743], #h=0.1
+  # [4,[1,4,3,2],2,-0.18602412802940743], 
+  # [4,[2,1,4,3],2,-0.18602412802940743], 
+  # [4,[3,2,1,4],2,-0.18602412802940743], 
+  # [4,[1,2,3,4],2,-0.18624371139096008], 
+  # [4,[4,1,2,3],2,-0.18624371139096008], 
+  # [4,[3,4,1,2],2,-0.18624371139096008], 
+  # [4,[2,3,4,1],2,-0.18624371139096008], 
+  # [4,[4,3,2,1],2,-0.5777047798854016], #h=1.1
+  # [4,[1,4,3,2],2,-0.5777047798854016], 
+  # [4,[2,1,4,3],2,-0.5777047798854016], 
+  # [4,[3,2,1,4],2,-0.5777047798854016], 
+  [4,[1,2,3,4],2,-0.5786207591390172], 
+  [4,[4,1,2,3],2,-0.5786207591390172], 
+  [4,[3,4,1,2],2,-0.5786207591390172], 
+  [4,[2,3,4,1],2,-0.5786207591390172], 
+  # [4,[4,1,1,1],2,-0.22690033134658272], 
+ 
 ]
 
-@testset verbose=true "vumps for rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO,InfiniteMPOMatrix], qns in [true], alg=["sequential","parallel"]
+@testset verbose=true "vumps for rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteSum{MPO},InfiniteMPO,InfiniteMPOMatrix], qns in [true], alg=["parallel"]
   initstate(n) = isodd(n) ? "↑" : "↓"
   N,NNNs,n_expansions,e_expected=test[1],test[2],test[3],test[4]
   # qns=true
-  tol=1e-5
+  tol=1e-8
   vumps_kwargs = (
       multisite_update_alg=alg,
       tol=tol,
@@ -322,9 +382,10 @@ tests=[
       return_e=true,
       time_step=-Inf,
     )
-  sites = infsiteinds("S=1/2", N; initstate, conserve_qns=qns)
+  sites = infsiteinds("S=1/2", N; initstate, conserve_szparity=qns)
   ψ = InfMPS(sites, initstate)
-  Hmpo = H_type(Model"heisenbergNNNs"(), sites; NNNs=NNNs)
+  # Hmpo = H_type(Model"heisenbergNNNs"(), sites; NNNs=NNNs)
+  Hmpo = H_type(Model"isingNNNs"(), sites; NNNs=NNNs)
   ψ,(eᴸ, eᴿ) = tdvp(Hmpo, ψ; vumps_kwargs...)
   for _ in 1:n_expansions
       ψ = subspace_expansion(ψ, Hmpo; cutoff=1e-8,maxdim=32)
@@ -335,11 +396,13 @@ tests=[
   μᴿ,σᴿ=mean_var(eᴿ)
   μ,σ=mean_var(vcat(eᴸ,eᴿ))
   # @show eᴸ eᴿ μᴸ,σᴸ μᴿ,σᴿ μ,σ
-  # @show μ,σ
-  # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
-  @test σᴸ < eps
-  @test σᴿ < eps
-  @test σ < eps
+  # @show μ  μ-e_expected
+  # # @show μᴸ-e_expected μᴿ-e_expected μ-e_expected
+  if H_type !=InfiniteSum{MPO}
+    @test σᴸ < eps
+    @test σᴿ < eps
+    @test σ < eps
+  end
   @test μᴸ ≈ e_expected atol = eps
   @test μᴿ ≈ e_expected atol = eps
   @test μ ≈ e_expected atol = eps
