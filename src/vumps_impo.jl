@@ -252,7 +252,7 @@ function left_environment(Hcomp::InfiniteCanonicalMPO, ψ::InfiniteCanonicalMPS;
     N=nsites(Hcomp)
     Lcomp=CelledVector{ITensor}(undef,N)
     for k in 1:N
-        Lcomp[k]=L[k]*Hcomp.G[k]
+        Lcomp[k]=L[k]*Hcomp.G0R[k]
         @assert order(Lcomp[k])==3
     end
     return Lcomp,el
@@ -263,7 +263,7 @@ function right_environment(Hcomp::InfiniteCanonicalMPO, ψ::InfiniteCanonicalMPS
     N=nsites(Hcomp)
     Rcomp=CelledVector{ITensor}(undef,N)
     for k in 1:N
-        Rcomp[k]=R[k]*inv(Hcomp.G[k])
+        Rcomp[k]=R[k]*inv(Hcomp.G0R[k])
         @assert order(Rcomp[k])==3
     end
     return Rcomp,er

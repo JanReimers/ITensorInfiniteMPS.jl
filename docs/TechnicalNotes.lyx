@@ -149,7 +149,7 @@ The extent of the unit cell for the MPS is part of the MPS ansatz and it
 \end_inset
 
  is part of the problem definition.
- There is no reason why these cells size should coincide, so we must code
+ There is no reason why these cells sizes should coincide, so we must code
  for 
 \begin_inset Formula $N\neq N_{W}$
 \end_inset
@@ -204,7 +204,7 @@ where we index the site with round brackets
 
 .
  One quickly runs out of space to locate indices in this business! The orthonorm
-al forms are the same
+al forms superficially appear to be the same
 \begin_inset Formula 
 \begin{equation}
 \sum_{s}A\left(k\right)_{L}^{\dagger s}A\left(k\right)_{L}^{s}=𝕀,\quad\sum_{s}A\left(k\right)_{R}^{s}A\left(k\right)_{R}^{\dagger s}=𝕀,\quad k=1\ldots N\label{eq:Cell ortho forms}
@@ -212,7 +212,12 @@ al forms are the same
 
 \end_inset
 
-But the right and left eigen vector 
+but that only because we are ommiting a 
+\begin_inset Formula $k$
+\end_inset
+
+ index on identities.
+ The right and left pseudo eigen vector 
 \begin_inset Formula $R$
 \end_inset
 
@@ -356,7 +361,8 @@ In addition it is also useful to define the full unit cell MPO transfer
 
 \end_inset
 
-We also have the same interlaced eigen vector relations as for the MPS:
+We also have the same interlaced pseudo eigen vector relations as for the
+ MPS:
 \begin_inset Formula 
 \begin{equation}
 \left(\mathbb{I}\left(k\right)\right|=\left(\mathbb{I}\left(k-1\right)\right|T\left(k\right)_{L}^{W}\label{eq:Interlaced ITWL}
@@ -395,7 +401,7 @@ We also have the same interlaced eigen vector relations as for the MPS:
 \end_layout
 
 \begin_layout Section
-Eigen vectors of the MPO transfer matrix
+Pseudo Eigen vectors of the MPO transfer matrix
 \end_layout
 
 \begin_layout Standard
@@ -423,7 +429,7 @@ noprefix "false"
 .
  But because of the interlacing relations throughout the unit cell, these
  are not actually eigen equations.
- To get and eigen system we must use the full unit cell transfer matrices
+ To get an eigen system we must use the full unit cell transfer matrices
  
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -601,10 +607,10 @@ It is not a priori obvious which approach is more efficient in terms of
 \begin_layout Standard
 In order to implement option 2 above, we first review the gauge relations
  for orthogonalization and compression of iMPOs.
- For left and right orthogonalization we have respectively:
+ For left and right orthogonalization we have respectively: 
 \begin_inset Formula 
 \begin{equation}
-G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k\right)_{L}\label{eq:LeftOrthoGT}
+G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k\right)_{0L}\label{eq:LeftOrthoGT}
 \end{equation}
 
 \end_inset
@@ -612,7 +618,7 @@ G\left(k-1\right)_{L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k
 
 \begin_inset Formula 
 \begin{equation}
-G\left(k-1\right)_{R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{R}\label{eq:RightOrthoGT}
+G\left(k-1\right)_{0R}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{0R}\label{eq:RightOrthoGT}
 \end{equation}
 
 \end_inset
@@ -629,7 +635,7 @@ where
  transform labeling:
 \begin_inset Formula 
 \[
-G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{0L}G\left(k\right)_{L}
+G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{L}G\left(k\right)_{0L}
 \]
 
 \end_inset
@@ -637,7 +643,7 @@ G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}=\hat{W}\left(k\right)_{0L}G\left
 
 \begin_inset Formula 
 \[
-G\left(k-1\right)_{LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k\right)_{LR}
+G\left(k-1\right)_{0LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(k\right)_{0LR}
 \]
 
 \end_inset
@@ -645,7 +651,7 @@ G\left(k-1\right)_{LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(
 
 \begin_inset Formula 
 \[
-=\left[G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}G\left(k0\right)_{L}^{-1}\right]G\left(k\right)_{LR}
+=\left[G\left(k-1\right)_{0L}\hat{W}\left(k\right)_{0}G\left(k\right)_{0L}^{-1}\right]G\left(k\right)_{0LR}
 \]
 
 \end_inset
@@ -653,7 +659,7 @@ G\left(k-1\right)_{LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{L}G\left(
 or
 \begin_inset Formula 
 \[
-G\left(k-1\right)_{0L}^{-1}G\left(k-1\right)_{LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{0L}^{-1}G\left(k\right)_{LR}
+G\left(k-1\right)_{0L}^{-1}G\left(k-1\right)_{0LR}\hat{W}\left(k\right)_{R}=\hat{W}\left(k\right)_{0}G\left(k\right)_{0L}^{-1}G\left(k\right)_{0LR}
 \]
 
 \end_inset
@@ -673,7 +679,7 @@ where
  is any solution of
 \begin_inset Formula 
 \[
-G\left(k\right)_{L}G\left(k\right)_{0R}=G\left(k\right)_{R}
+G\left(k\right)_{0L}G\left(k\right)_{0R}=G\left(k\right)_{0LR}
 \]
 
 \end_inset
@@ -940,7 +946,7 @@ G\left(k\right)_{full}^{-1}\left|R\left(k\right)^{W}\right)=\mathbb{T}\left(k\ri
 \end_inset
 
 which defines the compressed version of 
-\begin_inset Formula $L$
+\begin_inset Formula $R$
 \end_inset
 
 

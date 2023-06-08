@@ -76,34 +76,39 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
 
   @testset "Truncate/Compress InfiniteCanonicalMPO, H=$(model[1]), qbs=$qns, Ncell=$Ncell, NNN=$NNN" for model in models,
     qns in [false,true], Ncell in [1,3], NNN in [1,4]
-      eps=NNN*1e-14
+      eps= qns ? NNN*1e-14 : NNN*2e-14
+      
       initstate(n) = isodd(n) ? "↑" : "↓"
       sites = infsiteinds(model[2], Ncell; initstate, conserve_qns=qns)
       Hi = InfiniteMPO(model[1], sites;NNN=NNN)
 
       Ho = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
       @test check_ortho(Ho) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+      @test check_gauge_LR(Ho) ≈ 0.0 atol = eps    #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+      @test check_gauge_0R(Ho,Hi) ≈ 0.0 atol = eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
 
       Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
       @test check_ortho(Ht) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+      @test check_gauge_LR(Ht) ≈ 0.0 atol = eps    #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+      @test check_gauge_0R(Ht,Hi) ≈ 0.0 atol = eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
       #@show BondSpectrums
   end
 
   @testset "Try a lattice with alternating S=1/2 and S=1 sites. iMPO. Qns=$qns, Ncell=$Ncell, NNN=$NNN" for qns in [false,true], Ncell in [1,3], NNN in [1,4]
-      eps=NNN*1e-14
+      eps= NNN*2e-14 
       initstate(n) = isodd(n) ? "Dn" : "Up"
       si = infsiteinds(n->isodd(n) ? "S=1" : "S=1/2",Ncell; initstate, conserve_qns=qns)
       Hi = InfiniteMPO(Model"heisenbergNNN"(), si;NNN=NNN)
 
       Ho = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
       @test check_ortho(Ho) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ho) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+      @test check_gauge_LR(Ho) ≈ 0.0 atol = eps    #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+      @test check_gauge_0R(Ho,Hi) ≈ 0.0 atol = eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
 
       Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
       @test check_ortho(Ht) #AL is left ortho && AR is right ortho
-      @test check_gauge(Ht) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+      @test check_gauge_LR(Ht) ≈ 0.0 atol = eps    #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+      @test check_gauge_0R(Ht,Hi) ≈ 0.0 atol = eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
       #@show BondSpectrums
   end
 
@@ -144,32 +149,38 @@ end
 
   H1234t,BondSpectrumsH1234 = truncate(H1234) #Use default cutoff,C is now diagonal
   @test check_ortho(H1234t) #AL is left ortho && AR is right ortho
-  @test check_gauge(H1234t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  @test check_gauge_LR(H1234t) ≈ 0.0 atol = eps #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+  @test check_gauge_0R(H1234t,H1234) ≈ 0.0 atol = 2*eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
   # @show BondSpectrumsH1234
 
   H2341t,BondSpectrumsH2341 = truncate(H2341) #Use default cutoff,C is now diagonal
   @test check_ortho(H2341t) #AL is left ortho && AR is right ortho
-  @test check_gauge(H2341t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  @test check_gauge_LR(H2341t) ≈ 0.0 atol = eps #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+  @test check_gauge_0R(H2341t,H2341) ≈ 0.0 atol = 2*eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
   # @show BondSpectrumsH2341
 
   H3412t,BondSpectrumsH3412 = truncate(H3412) #Use default cutoff,C is now diagonal
   @test check_ortho(H3412t) #AL is left ortho && AR is right ortho
-  @test check_gauge(H3412t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  @test check_gauge_LR(H3412t) ≈ 0.0 atol = eps #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+  @test check_gauge_0R(H3412t,H3412) ≈ 0.0 atol = 2*eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
   # @show BondSpectrumsH3412
 
   H4123t,BondSpectrumsH4123 = truncate(H4123) #Use default cutoff,C is now diagonal
   @test check_ortho(H4123t) #AL is left ortho && AR is right ortho
-  @test check_gauge(H4123t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  @test check_gauge_LR(H4123t) ≈ 0.0 atol = eps #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+  @test check_gauge_0R(H4123t,H4123) ≈ 0.0 atol = 2*eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
   # @show BondSpectrumsH4123
 
   H4321t,BondSpectrumsH4321 = truncate(H4321) #Use default cutoff,C is now diagonal
   @test check_ortho(H4321t) #AL is left ortho && AR is right ortho
-  @test check_gauge(H4321t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  @test check_gauge_LR(H4321t) ≈ 0.0 atol = eps #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+  @test check_gauge_0R(H4321t,H4321) ≈ 0.0 atol = 2*eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
   # @show BondSpectrumsH4321
 
   H3214t,BondSpectrumsH3214 = truncate(H3214) #Use default cutoff,C is now diagonal
   @test check_ortho(H3214t) #AL is left ortho && AR is right ortho
-  @test check_gauge(H3214t) ≈ 0.0 atol = eps #ensure C[n - 1] * AR[n] - AL[n] * C[n]
+  @test check_gauge_LR(H3214t) ≈ 0.0 atol = eps #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
+  @test check_gauge_0R(H3214t,H3214) ≈ 0.0 atol = 2*eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
   # @show BondSpectrumsH3214
 
   

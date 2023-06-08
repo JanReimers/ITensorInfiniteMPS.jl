@@ -61,7 +61,7 @@ function truncate!(
   # orthogonalize!(HR, left; cutoff=rr_cutoff, kwargs...)
   # HL = copy(HR)
   # Gs = orthogonalize!(HR, right; cutoff=rr_cutoff, kwargs...)
-  HL,GLR,HR,G = orthogonalize(Hi;cutoff=rr_cutoff,kwargs...)
+  HL,HR,GLR,G0R = orthogonalize(Hi;cutoff=rr_cutoff,kwargs...)
   #
   #  Now compress and gauge transforms and apply the similarity transform to HL and HR.
   #
@@ -76,9 +76,9 @@ function truncate!(
     HL[k + 1] *= dag(U)
     HR[k] *= dag(V)
     HR[k + 1] *= V
-    G[k]*=dag(V)
+    G0R[k]*=dag(V)
   end
-  return HL, HR, Ss, G, ss 
+  return HL, HR, Ss, G0R, ss 
 end
 
 function truncateG(G::ITensor, igl::Index; cutoff=1e-15, kwargs...)

@@ -4,17 +4,17 @@ import Base: inv
 struct InfiniteCanonicalMPO <: AbstractInfiniteMPS
     H0::InfiniteMPO #uncompressed version used for triangular environment algo.
     AL::InfiniteMPO
-    GLR::CelledVector{ITensor} #Gauge transform betwee AL and AR
     AR::InfiniteMPO
-    G::CelledVector{ITensor} #Gauge transform betwee H0 and AL
+    GLR::CelledVector{ITensor} #Gauge transform betwee AL and AR
+    G0R::CelledVector{ITensor} #Gauge transform betwee H0 and AL
 end
 
-function InfiniteCanonicalMPO(H0::InfiniteMPO,HL::reg_form_iMPO,GLR::CelledVector{ITensor},HR::reg_form_iMPO,G::CelledVector{ITensor})
-    return InfiniteCanonicalMPO(H0,InfiniteMPO(HL),GLR,InfiniteMPO(HR),G)
+function InfiniteCanonicalMPO(H0::InfiniteMPO,HL::reg_form_iMPO,HR::reg_form_iMPO,GLR::CelledVector{ITensor},G0R::CelledVector{ITensor})
+    return InfiniteCanonicalMPO(H0,InfiniteMPO(HL),InfiniteMPO(HR),GLR,G0R)
 end
 
 Base.length(H::InfiniteCanonicalMPO)=length(H.GLR)
-ITensors.data(H::InfiniteCanonicalMPO)=H.AL
+ITensors.data(H::InfiniteCanonicalMPO)=H.AR
 ITensorInfiniteMPS.isreversed(::InfiniteCanonicalMPO)=false
 Base.getindex(H::InfiniteCanonicalMPO, n::Int64)=getindex(H.AR,n)
 
@@ -29,7 +29,7 @@ end
 #
 #  Check the gauge transform between AR and AL
 #
-function check_gauge(H::InfiniteCanonicalMPO)::Float64
+function check_gauge_LR(H::InfiniteCanonicalMPO)::Float64
     eps2=0.0
     for k in eachindex(H)
         eps2+=norm(H.GLR[k - 1] * H.AR[k] - H.AL[k] * H.GLR[k])^2
@@ -40,45 +40,45 @@ end
 #
 #  Check the gauge transform between AR and H0 (the raw unmodified Hamiltonian)
 #
-function check_gauge(H::InfiniteCanonicalMPO,H0::InfiniteMPO)::Float64
+function check_gauge_0R(H::InfiniteCanonicalMPO,H0::InfiniteMPO)::Float64
     eps2=0.0
     for k in eachindex(H)
-        eps2+=norm(H.G[k - 1] * H.AR[k] - H0[k] * H.G[k])^2
+        eps2+=norm(H.G0R[k - 1] * H.AR[k] - H0[k] * H.G0R[k])^2
     end
     # @show norm(Ho.G[0]*Ho.AR[1]-H[1]*Ho.G[1])
     return sqrt(eps2)
 end
 
 function ITensors.orthogonalize(H0::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
-    HL,GLR,HR,G=orthogonalize(reg_form_iMPO(H0);kwargs...)
-    return InfiniteCanonicalMPO(H0,HL,GLR,HR,G)
+    HL,HR,GLR,G0R=orthogonalize(reg_form_iMPO(H0);kwargs...)
+    return InfiniteCanonicalMPO(H0,HL,HR,GLR,G0R)
 end
 function ITensors.orthogonalize(Hi::reg_form_iMPO;kwargs...)
     HL=copy(Hi) #not HL yet, but will be after two ortho calls.
-    GL=orthogonalize!(HL, left; kwargs...)
+    G0L=orthogonalize!(HL, left; kwargs...)
     HR = copy(HL)
-    GR = orthogonalize!(HR,right; kwargs...)
-    return HL,GR,HR,full_ortho_gauge(GL,GR)
+    GLR = orthogonalize!(HR,right; kwargs...)
+    return HL,HR,GLR,full_ortho_gauge(G0L,GLR)
 end
 
 function ITensors.truncate(H0::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
     HL, HR, Ss, Gfull, ss = truncate!(reg_form_iMPO(H0);kwargs...)
-    return InfiniteCanonicalMPO(H0,HL,Ss,HR,Gfull),ss
+    return InfiniteCanonicalMPO(H0,HL,HR,Ss,Gfull),ss
 end
 
 #
 #  Assumes we first did right orth H0-->HR and the a left orth HR-->HL
 #  The H's should satisfy: H0[K]*G[K]-G[k-1]*HL[k]
 #
-function full_ortho_gauge(GL::CelledVector{ITensor},GR::CelledVector{ITensor})
-    @assert length(GL)==length(GR)
-    N=length(GL)
-    G=CelledVector{ITensor}(undef,N)
+function full_ortho_gauge(G0L::CelledVector{ITensor},GLR::CelledVector{ITensor})
+    @assert length(G0L)==length(GLR)
+    N=length(G0L)
+    G0R=CelledVector{ITensor}(undef,N)
     for k in 1:N
-        G[k]=Base.inv(GL[k])*GR[k]
-        @assert order(G[k])==2
+        G0R[k]=Base.inv(G0L[k])*GLR[k]
+        @assert order(G0R[k])==2
     end
-    return G
+    return G0R
 end
 
 
