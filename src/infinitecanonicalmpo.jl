@@ -22,7 +22,7 @@ function ITensorMPOCompression.get_Dw(H::InfiniteCanonicalMPO)
     return get_Dw(H.AR)
 end
 
-function ITensorMPOCompression.check_ortho(H::InfiniteCanonicalMPO)::Bool
+function check_ortho(H::InfiniteCanonicalMPO)::Bool
     return check_ortho(H.AL,left) && check_ortho(H.AR,right)
 end
 
