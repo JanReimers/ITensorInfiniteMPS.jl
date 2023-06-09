@@ -172,6 +172,12 @@ function generate_twobody_nullspace(
   @assert k2==k+1
   L, _ = left_environment(H, ψ)
   R, _ = right_environment(H, ψ)
+  @assert translator(H)==translator(ψ.AL)
+  @assert translator(H)==translator(ψ.AR)
+  @assert translator(H)==translator(ψ.C)
+  @assert translator(H)==translator(L)
+  @assert translator(H)==translator(R)
+
   return noprime((L[k-1]*H[k])*ψ.AL[k]*ψ.C[k]*ψ.AR[k+1]*(H[k+1]*R[k+1]))
 end
 
