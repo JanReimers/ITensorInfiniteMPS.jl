@@ -6,13 +6,16 @@ struct InfiniteCanonicalMPO <: AbstractInfiniteMPS
     AL::InfiniteMPO
     AR::InfiniteMPO
     GLR::CelledVector{ITensor} #Gauge transform betwee AL and AR
-    G0R::CelledVector{ITensor} #Gauge transform betwee H0 and AL
+    G0R::CelledVector{ITensor} #Gauge transform betwee H0 and AR. Used to get L/R environments
 end
 
 function InfiniteCanonicalMPO(H0::InfiniteMPO,HL::reg_form_iMPO,HR::reg_form_iMPO,GLR::CelledVector{ITensor},G0R::CelledVector{ITensor})
     return InfiniteCanonicalMPO(H0,InfiniteMPO(HL),InfiniteMPO(HR),GLR,G0R)
 end
 
+#
+#  Vumps can work with either H.AL or H.AR we just need to pick one in the data/getindex overloads.  
+#
 Base.length(H::InfiniteCanonicalMPO)=length(H.GLR)
 ITensors.data(H::InfiniteCanonicalMPO)=H.AR
 ITensorInfiniteMPS.isreversed(::InfiniteCanonicalMPO)=false
@@ -58,7 +61,14 @@ function ITensors.orthogonalize(Hi::reg_form_iMPO;kwargs...)
     G0L=orthogonalize!(HL, left; kwargs...)
     HR = copy(HL)
     GLR = orthogonalize!(HR,right; kwargs...)
-    return HL,HR,GLR,full_ortho_gauge(G0L,GLR)
+    G0LR=full_ortho_gauge(G0L,GLR)
+    #
+    #  At this point HL is likely to have a larger bond dimension than HR because the second sweep matters for reducing Dw.
+    #  Truncation will make this discrepency moot.
+    #  If we need a reduced HL for some reason then one more sweep as below can be uncommented.
+    # HL=copy(HR)
+    # GRL = orthogonalize!(HL,left; kwargs...)
+    return HL,HR,GLR,G0LR
 end
 
 function ITensors.truncate(H0::InfiniteMPO;kwargs...)::Tuple{InfiniteCanonicalMPO,bond_spectrums}
@@ -81,16 +91,18 @@ function full_ortho_gauge(G0L::CelledVector{ITensor},GLR::CelledVector{ITensor})
     return G0R
 end
 
+#
+#  Penrose inverse
+#
+function Base.inv(A::ITensor;tol=1e-12,kwargs...)::ITensor
+@assert order(A)==2
 
- function Base.inv(A::ITensor;tol=1e-12,kwargs...)::ITensor
-    @assert order(A)==2
-
-    U,s,V=svd(A,ind(A,1);kwargs...)
-    if minimum(diag(s))<tol
-        @warn("Trying to solve near singular system. diag(s)=$(diag(s))")
-    end
-    return dag(V)*invdiag(s)*dag(U)
- end
+U,s,V=svd(A,ind(A,1);kwargs...)
+if minimum(diag(s))<tol
+    @warn("Trying to solve near singular system. diag(s)=$(diag(s))")
+end
+return dag(V)*invdiag(s)*dag(U)
+end
 
 function invdiag(s::ITensor)
     return itensor(invdiag(tensor(s)))

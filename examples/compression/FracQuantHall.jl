@@ -16,38 +16,58 @@ spaces(H::InfiniteMPO)=map(n->length(space(linkind(H,n))),eachindex(H))
 
 include("../../test/hamiltonians/fqhe.jl")
 
+let 
+  ψ = InfMPS(s, initstate);
 
-ψ = InfMPS(s, initstate);
-
-Hm = InfiniteMPOMatrix(fqhe_model, s; fqhe_model_params...);
-for H in Hm
-  lx,ly=size(H)
-  for ix in 1:lx
-    for iy in 1:ly
-      M=H[ix,iy]
-      if !isempty(M)
-        ITensors.checkflux(M)
+  Hm = InfiniteMPOMatrix(fqhe_model, s; fqhe_model_params...);
+  for H in Hm
+    lx,ly=size(H)
+    for ix in 1:lx
+      for iy in 1:ly
+        M=H[ix,iy]
+        if !isempty(M)
+          ITensors.checkflux(M)
+        end
       end
     end
   end
-end
 
-Hi=InfiniteMPO(Hm)
+  Hi=InfiniteMPO(Hm)
 
-ITensors.checkflux.(Hi)
+  ITensors.checkflux.(Hi)
 
-@show get_Dw(Hi) spaces(Hi)
+  @show get_Dw(Hi) spaces(Hi)
 
-Hc=merge_blocks(Hi)
-@show get_Dw(Hc) spaces(Hc)
+  Hc=merge_blocks(Hi)
+  @show get_Dw(Hc) spaces(Hc)
 
-Ho=orthogonalize(Hi)
-@show get_Dw(Ho.AL) spaces(Ho.AL)
-Ht,BondSpectrums = ITensors.truncate(Hi) #Warning about interferance with Base.truncate(file,n)
-@show get_Dw(Ht.AL) spaces(Ht.AL)
-@show BondSpectrums
-Ht,BondSpectrums = ITensors.truncate(Hi;cutoff=1e-10)
-@show get_Dw(Ht.AL) spaces(Ht.AL)
-@show BondSpectrums
+  Ho=orthogonalize(Hi)
+  @show get_Dw(Ho.AL) 
+  @show get_Dw(Ho.AR) 
 
+
+  Ht,BondSpectrums = ITensors.truncate(Hi) #Warning about interferance with Base.truncate(file,n)
+  @show get_Dw(Ht.AL) 
+  @show get_Dw(Ht.AR) 
+  @show BondSpectrums
+
+  vumps_kwargs = (
+        multisite_update_alg="parallel",
+        tol=1e-5,
+        maxiter=50,
+        outputlevel=1,
+        return_e=true,
+        time_step=-Inf,
+      )
+
+  ψ,(eᴸ, eᴿ) = tdvp(Ht, ψ; vumps_kwargs...)
+  for _ in 1:1
+      ψ = subspace_expansion(ψ, Ht; cutoff=1e-8,maxdim=32)
+      ψ,(eᴸ, eᴿ) = tdvp(Ht, ψ; vumps_kwargs...)      
+  end
+  # Ht,BondSpectrums = ITensors.truncate(Hi;cutoff=1e-10)
+  # @show get_Dw(Ht.AL) spaces(Ht.AL)
+  # @show BondSpectrums
+
+end # let
 nothing
