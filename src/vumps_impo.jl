@@ -127,7 +127,7 @@ function left_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     #
     #  Now sweep throught the cell and evalute all the other L[k] form L[1]
     #
-    L=CelledVector{ITensor}(undef,N)
+    L=CelledVector{ITensor}(undef,N,translator(H))
     L[1]=L₁
     for k in 2:N
         L[k]=apply_TW_left(L[k-1],H[k],ψ.AL[k])
@@ -198,7 +198,7 @@ function right_environment(H::InfiniteMPO, ψ::InfiniteCanonicalMPS; tol=1e-10)
     #
     #  Now sweep leftwards through the cell and evalaute all the R[k] form R[1]
     #
-    R=CelledVector{ITensor}(undef,N)
+    R=CelledVector{ITensor}(undef,N,translator(H))
     R[1]=R₁
     for k in N:-1:2
         R[k]=apply_TW_right(R[k+1],H[k+1],ψ.AR[k+1])
@@ -248,23 +248,29 @@ H¹(L::ITensor,R::ITensor,Ŵ::ITensor)=iMPO¹(L,R,Ŵ)
 #  Support for compressed Hamiltonians
 #
 function left_environment(Hcomp::InfiniteCanonicalMPO, ψ::InfiniteCanonicalMPS; kwargs...)
+    @assert translator(Hcomp.AR)==translator(ψ.AR)
     L,el=left_environment(Hcomp.H0,ψ;kwargs...)
+    @assert translator(Hcomp.H0)==translator(L)
     N=nsites(Hcomp)
-    Lcomp=CelledVector{ITensor}(undef,N)
+    Lcomp=CelledVector{ITensor}(undef,N,translator(L))
     for k in 1:N
         Lcomp[k]=L[k]*Hcomp.G0R[k]
         @assert order(Lcomp[k])==3
     end
+    @assert translator(Hcomp.H0)==translator(Lcomp)
     return Lcomp,el
 end
 
 function right_environment(Hcomp::InfiniteCanonicalMPO, ψ::InfiniteCanonicalMPS; kwargs...)
+    @assert translator(Hcomp.AR)==translator(ψ.AR)
     R,er=right_environment(Hcomp.H0,ψ;kwargs...)
+    @assert translator(Hcomp.H0)==translator(R)
     N=nsites(Hcomp)
-    Rcomp=CelledVector{ITensor}(undef,N)
+    Rcomp=CelledVector{ITensor}(undef,N,translator(R))
     for k in 1:N
         Rcomp[k]=R[k]*inv(Hcomp.G0R[k])
         @assert order(Rcomp[k])==3
     end
+    @assert translator(Hcomp.H0)==translator(Rcomp)
     return Rcomp,er
 end
