@@ -10,6 +10,10 @@ struct InfiniteCanonicalMPO <: AbstractInfiniteMPS
 end
 
 function InfiniteCanonicalMPO(H0::InfiniteMPO,HL::reg_form_iMPO,HR::reg_form_iMPO,GLR::CelledVector{ITensor},G0R::CelledVector{ITensor})
+    @assert translator(H0)==translator(HL)
+    @assert translator(H0)==translator(HR)
+    @assert translator(H0)==translator(GLR)
+    @assert translator(H0)==translator(G0R)
     return InfiniteCanonicalMPO(H0,InfiniteMPO(HL),InfiniteMPO(HR),GLR,G0R)
 end
 
@@ -58,10 +62,17 @@ function ITensors.orthogonalize(H0::InfiniteMPO;kwargs...)::InfiniteCanonicalMPO
 end
 function ITensors.orthogonalize(Hi::reg_form_iMPO;kwargs...)
     HL=copy(Hi) #not HL yet, but will be after two ortho calls.
+    @assert translator(Hi)==translator(HL)
     G0L=orthogonalize!(HL, left; kwargs...)
+    @assert translator(Hi)==translator(HL)
+    @assert translator(Hi)==translator(G0L)
     HR = copy(HL)
+    @assert translator(Hi)==translator(HR)
     GLR = orthogonalize!(HR,right; kwargs...)
+    @assert translator(Hi)==translator(HR)
+    @assert translator(Hi)==translator(GLR)
     G0LR=full_ortho_gauge(G0L,GLR)
+    @assert translator(Hi)==translator(G0LR)
     #
     #  At this point HL is likely to have a larger bond dimension than HR because the second sweep matters for reducing Dw.
     #  Truncation will make this discrepency moot.
@@ -82,8 +93,9 @@ end
 #
 function full_ortho_gauge(G0L::CelledVector{ITensor},GLR::CelledVector{ITensor})
     @assert length(G0L)==length(GLR)
+    @assert translator(G0L)==translator(GLR)
     N=length(G0L)
-    G0R=CelledVector{ITensor}(undef,N)
+    G0R=CelledVector{ITensor}(undef,N,translator(G0L))
     for k in 1:N
         G0R[k]=Base.inv(G0L[k])*GLR[k]
         @assert order(G0R[k])==2

@@ -44,12 +44,18 @@ let
   Ho=orthogonalize(Hi)
   @show get_Dw(Ho.AL) 
   @show get_Dw(Ho.AR) 
-
+  @assert translator(Hi)==translator(Ho.AR)
+  @assert translator(Hi)==translator(Ho.AL)
+  @assert translator(Hi)==translator(Ho.H0)
+  
 
   Ht,BondSpectrums = ITensors.truncate(Hi) #Warning about interferance with Base.truncate(file,n)
   @show get_Dw(Ht.AL) 
   @show get_Dw(Ht.AR) 
   @show BondSpectrums
+  @assert translator(Hi)==translator(Ht.AR)
+  @assert translator(Hi)==translator(Ht.AL)
+  @assert translator(Hi)==translator(Ht.H0)
 
   vumps_kwargs = (
         multisite_update_alg="parallel",

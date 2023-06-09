@@ -119,7 +119,7 @@ end
   end
 
   function ITensorInfiniteMPS.InfiniteMPO(Hrf::reg_form_iMPO)::InfiniteMPO
-    return InfiniteMPO(Ws(Hrf))
+    return InfiniteMPO(Ws(Hrf),translator(Hrf))
   end
   
   
