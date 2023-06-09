@@ -359,7 +359,23 @@ tests=[
   # [4,[1,4,1,4],2,-0.42236642], 
   # [4,[4,1,4,1],2,-0.4223896], 
 
-  [2,[1,1],2,Model"hubbardNNNs"(),"Electron",-0.8126998108567591],
+  [2,[1,1],2,Model"hubbardNNNs"(),"Electron",-0.8126998108567591], #easy commensurate
+  #
+  #  See energies converge as N increases.  Presumably towards an incommmensurate GS.
+  #
+  [2,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7756839346113128],
+  [4,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7734956745259833],
+  [4,[3,1,3,1],2,Model"hubbardNNNs"(),"Electron",-0.7734956745259833], #Double cell for H should change nothing
+  [6,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7681634027405047],
+  [8,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7675595918275887],
+  [2,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7660642672670517],
+  [4,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7659048521284240],
+  [4,[1,3,1,3],2,Model"hubbardNNNs"(),"Electron",-0.7659048521284240], #Double cell for H should change nothing
+  [6,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7658535005422838],
+  [8,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7658278899976771],
+  #
+  #  Try and trigger the subspcae expansion error with long range interactions.
+  #
   [2,[7,1],2,Model"hubbardNNNs"(),"Electron",-0.6976465308516251],
   [2,[1,7],2,Model"hubbardNNNs"(),"Electron",-0.6783064305516868],
  
