@@ -1,5 +1,5 @@
 using ITensors, ITensorMPOCompression, ITensorInfiniteMPS
-using Revise, Printf,Test, BenchmarkTools
+using Revise, Printf,Test
 
 import Base: inv
 import ITensorInfiniteMPS: reg_form_iMPO, left_environment, right_environment, AbstractInfiniteMPS
@@ -46,12 +46,12 @@ models = [
   ψ = InfMPS(sites, initstate)
   H = InfiniteMPO(model[1], sites; NNN=NNN)
   Ho=orthogonalize(H)
-  @test check_gauge(Ho) ≈ 0.0 atol = eps*NNN*N
-  @test check_gauge(Ho,H) ≈ 0.0 atol = eps*NNN*N
+  @test check_gauge_LR(Ho) ≈ 0.0 atol = eps*NNN*N
+  @test check_gauge_0R(Ho,H) ≈ 0.0 atol = eps*NNN*N
   
   Ht,ss=truncate(H)
-  @test check_gauge(Ht) ≈ 0.0 atol = eps*NNN*N
-  @test check_gauge(Ht,H) ≈ 0.0 atol = eps*NNN*N
+  @test check_gauge_LR(Ht) ≈ 0.0 atol = eps*NNN*N
+  @test check_gauge_0R(Ht,H) ≈ 0.0 atol = eps*NNN*N
 end
 
 @testset "Reduced L/R environments, H=$(model[1]), N=$N, NNN=$NNN, qns=$qns" for model in models, N in 1:4, NNN in [1,2,5,10], qns in [false,true]
@@ -69,8 +69,8 @@ end
   Lc=CelledVector{ITensor}(undef,N)
   Rc=CelledVector{ITensor}(undef,N)
   for k in 1:N
-    Lc[k]=L[k]*Ht.G[k]
-    Rc[k]=R[k]*inv(Ht.G[k])
+    Lc[k]=L[k]*Ht.G0R[k]
+    Rc[k]=R[k]*inv(Ht.G0R[k])
     @test order(Lc[k])==3
     @test order(Rc[k])==3
   end
@@ -99,60 +99,61 @@ end
 #
 #  Benchmark tests
 #
+# using BenchmarkTools
 
-global Dglobal=0
+# global Dglobal=0
 
-function runvumps(ψ::AbstractInfiniteMPS,H,vumps_kwargs,maxdim::Int64)
-  ψ = tdvp(H, ψ; vumps_kwargs...)
-  for nex=1:4
-    ψ = subspace_expansion(ψ, H; cutoff=1e-8, maxdim)
-    ψ = tdvp(H, ψ; vumps_kwargs...)  
-    global Dglobal=dim(commoninds(ψ.AL[1], ψ.C[1]))   
-    if Dglobal>=maxdim
-      break
-    end
-  end 
-end
+# function runvumps(ψ::AbstractInfiniteMPS,H,vumps_kwargs,maxdim::Int64)
+#   ψ = tdvp(H, ψ; vumps_kwargs...)
+#   for nex=1:4
+#     ψ = subspace_expansion(ψ, H; cutoff=1e-8, maxdim)
+#     ψ = tdvp(H, ψ; vumps_kwargs...)  
+#     global Dglobal=dim(commoninds(ψ.AL[1], ψ.C[1]))   
+#     if Dglobal>=maxdim
+#       break
+#     end
+#   end 
+# end
 
-function InfiniteCanonicalMPO_orth(model::Model, s::CelledVector; kwargs...)
-  Hi=InfiniteMPO(model,s;kwargs...)
-  Hc=orthogonalize(Hi)
-  return Hc
-end
+# function InfiniteCanonicalMPO_orth(model::Model, s::CelledVector; kwargs...)
+#   Hi=InfiniteMPO(model,s;kwargs...)
+#   Hc=orthogonalize(Hi)
+#   return Hc
+# end
 
-function InfiniteCanonicalMPO(model::Model, s::CelledVector; kwargs...)
-  Hi=InfiniteMPO(model,s;kwargs...)
-  Hc,ss=truncate(Hi)
-  return Hc
-end
+# function InfiniteCanonicalMPO(model::Model, s::CelledVector; kwargs...)
+#   Hi=InfiniteMPO(model,s;kwargs...)
+#   Hc,ss=truncate(Hi)
+#   return Hc
+# end
 
-function ITensorMPOCompression.get_Dw(H::InfiniteMPOMatrix)
-  return get_Dw(InfiniteMPO(H))
-end
+# function ITensorMPOCompression.get_Dw(H::InfiniteMPOMatrix)
+#   return get_Dw(InfiniteMPO(H))
+# end
 
-Htypes= [InfiniteMPOMatrix,InfiniteMPO,InfiniteCanonicalMPO_orth,InfiniteCanonicalMPO]
-let
-  println("    Model         Hamiltonian Type               maxD   D  Dw   NNN   Time(sec)")
-for NNN in [1,3,5], maxD in [2,4], model in models, Htype in Htypes
-  vumps_kwargs = (
-      multisite_update_alg="sequential",
-      tol=1e-8,
-      maxiter=5,
-      outputlevel=0,
-      time_step=-Inf,
-    )
+# Htypes= [InfiniteMPOMatrix,InfiniteMPO,InfiniteCanonicalMPO_orth,InfiniteCanonicalMPO]
+# let
+#   println("    Model         Hamiltonian Type               maxD   D  Dw   NNN   Time(sec)")
+# for NNN in [1,3,5], maxD in [2,4], model in models, Htype in Htypes
+#   vumps_kwargs = (
+#       multisite_update_alg="sequential",
+#       tol=1e-8,
+#       maxiter=5,
+#       outputlevel=0,
+#       time_step=-Inf,
+#     )
 
-  # initstate(n) = "↑"
-  initstate(n) = isodd(n) ? "↑" : "↓"
-  sites = infsiteinds(model[2], 2; initstate, conserve_qns=true)
-  ψ = InfMPS(sites, initstate)
-  H = Htype(model[1], sites;NNN=NNN)
-  Dw=get_Dw(H)[1]
-  t = @benchmark runvumps($ψ,$H,$vumps_kwargs,$maxD) samples=1 evals=1
-  t=mean(t).time*1e-9
-  #println("Model=$model[1], H=$Htype, Dw=$Dw, NNN=$NNN, t=$t (sec)")
-  ms=rpad(string(model[1])[8:end-3],16," ")
-  hs=rpad(Htype,30," ")
-  @printf("%s %s %4i %4i %4i %4i    %1.3f\n",ms, hs ,maxD, Dglobal, Dw,NNN, t)
-end
-end
+#   # initstate(n) = "↑"
+#   initstate(n) = isodd(n) ? "↑" : "↓"
+#   sites = infsiteinds(model[2], 2; initstate, conserve_qns=true)
+#   ψ = InfMPS(sites, initstate)
+#   H = Htype(model[1], sites;NNN=NNN)
+#   Dw=get_Dw(H)[1]
+#   t = @benchmark runvumps($ψ,$H,$vumps_kwargs,$maxD) samples=1 evals=1
+#   t=mean(t).time*1e-9
+#   #println("Model=$model[1], H=$Htype, Dw=$Dw, NNN=$NNN, t=$t (sec)")
+#   ms=rpad(string(model[1])[8:end-3],16," ")
+#   hs=rpad(Htype,30," ")
+#   @printf("%s %s %4i %4i %4i %4i    %1.3f\n",ms, hs ,maxD, Dglobal, Dw,NNN, t)
+# end
+# end
