@@ -54,7 +54,7 @@ true
 ```
 
 """
-function orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs...)
+function orthogonalize!(H::reg_form_iMPO, lr::orth_type; eps_qr=1e-13, max_iter=40, verbose=false, kwargs...)
   gauge_fix!(H)
 
   N = length(H)
@@ -62,27 +62,23 @@ function orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs..
   #  Init gauge transform with unit matrices.
   #
   Gs = CelledVector{ITensor}(undef, N, translator(H))
-  Rs = CelledVector{ITensor}(undef, N, translator(H))
   for n in 1:N
     ln = lr == left ? H[n].iright : dag(H[n].iright) #get the forward link index
     Gs[n] = δ(Float64, dag(ln), ln')
   end
 
   if verbose
-    previous_Dw = Base.max(get_Dw(H)...)
     println("niter  Dw  eta\n")
   end
 
-  eps = 1e-13
   niter = 0
-  max_iter = 40
-  loop = true
   rng = sweep(H, lr)
   dn = lr == left ? 0 : -1 #index shift for Gs[n]
-  while loop
+  Rs = CelledVector{ITensor}(undef, N, translator(H))
+  while true
     eta = 0.0
     for n in rng
-      H[n], Rs[n], etan = ac_qx_step!(H[n], lr, eps; kwargs...)
+      H[n], Rs[n], etan = ac_qx_step!(H[n], lr; kwargs...)
       Gs[n + dn] = noprime(Rs[n] * Gs[n + dn])  #  Update the accumulated gauge transform
       @mpoc_assert order(Gs[n + dn]) == 2 #This will fail if the indices somehow got messed up.
       eta = Base.max(eta, etan)
@@ -98,12 +94,12 @@ function orthogonalize!(H::reg_form_iMPO, lr::orth_type; verbose=false, kwargs..
     if verbose
       println("$niter $(Base.max(get_Dw(H)...)) $eta")
     end
-    loop = eta > 1e-13 && niter < max_iter
+    (eta > eps_qr && niter < max_iter) || break
   end
   return Gs
 end
 
-function ac_qx_step!(Ŵ::reg_form_Op, lr::orth_type, eps::Float64; kwargs...)
+function ac_qx_step!(Ŵ::reg_form_Op, lr::orth_type; kwargs...)
   Q̂, R, iq, Rp = ac_qx(Ŵ, lr; cutoff=1e-14, qprime=true, return_Rp=true, kwargs...) # r-Q-qx qx-RL-c
   #
   #  How far are we from RL==Id ?
@@ -128,8 +124,7 @@ end
 function RmI(R::BlockSparseTensor)
   eta2 = 0.0
   for b in nzblocks(R)
-    Rbv = ITensors.blockview(R, b)
-    eta2 += norm(Rbv - Matrix(LinearAlgebra.I, size(Rbv)))^2
+    eta2 += RmI(blockview(R, b))^2
   end
   return sqrt(eta2)
 end
