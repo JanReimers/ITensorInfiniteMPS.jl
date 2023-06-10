@@ -359,25 +359,25 @@ tests=[
   # [4,[1,4,1,4],2,-0.42236642], 
   # [4,[4,1,4,1],2,-0.4223896], 
 
-  [2,[1,1],2,Model"hubbardNNNs"(),"Electron",-0.8126998108567591], #easy commensurate
+  [2,[1,1],2,Model"hubbardNNNs"(),"Electron",-0.7796128600518162], #easy commensurate
   #
   #  See energies converge as N increases.  Presumably towards an incommmensurate GS.
   #
-  [2,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7756839346113128],
-  [4,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7734956745259833],
-  [4,[3,1,3,1],2,Model"hubbardNNNs"(),"Electron",-0.7734956745259833], #Double cell for H should change nothing
-  [6,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7681634027405047],
-  [8,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7675595918275887],
-  [2,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7660642672670517],
-  [4,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7659048521284240],
-  [4,[1,3,1,3],2,Model"hubbardNNNs"(),"Electron",-0.7659048521284240], #Double cell for H should change nothing
-  [6,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7658535005422838],
-  [8,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7658278899976771],
+  [2,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7682243679915233],
+  [4,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7690670026968602],
+  [4,[3,1,3,1],2,Model"hubbardNNNs"(),"Electron",-0.7690670026968602], #Double cell for H should change nothing
+  [6,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7660082363800191],
+  [8,[3,1]    ,2,Model"hubbardNNNs"(),"Electron",-0.7656820626464702],
+  [2,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7647068073114186],
+  [4,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7647066789745267],
+  [4,[1,3,1,3],2,Model"hubbardNNNs"(),"Electron",-0.7647066789745267], #Double cell for H should change nothing
+  [6,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7647066382897318],
+  [8,[1,3]    ,2,Model"hubbardNNNs"(),"Electron",-0.7647066356958052],
   #
   #  Try and trigger the subspcae expansion error with long range interactions.
   #
-  [2,[7,1],2,Model"hubbardNNNs"(),"Electron",-0.6976465308516251],
-  [2,[1,7],2,Model"hubbardNNNs"(),"Electron",-0.6783064305516868],
+  [2,[7,1],2,Model"hubbardNNNs"(),"Electron",-0.6849362846270928],
+  [2,[1,7],2,Model"hubbardNNNs"(),"Electron",-0.6781218132473097],
  
 
   ]
@@ -385,7 +385,7 @@ tests=[
 @testset verbose=true "vumps for truncated rectangular iMPOs, N=$(test[1]), NNNs=$(test[2]), MPO rep.=$H_type, qns=$qns, alg=$alg" for test in tests, H_type in [InfiniteMPO], qns in [true], alg=["parallel"]
   initstate(n) = isodd(n) ? "↑" : "↓"
   N,NNNs,n_expansions,model,stype,e_expected=test[1],test[2],test[3],test[4],test[5],test[6]
-  tol=1e-5
+  tol=1e-6
   vumps_kwargs = (
       multisite_update_alg=alg,
       tol=tol,
@@ -401,7 +401,7 @@ tests=[
   @show get_Dw(Ht.AR)
   ψ,(eᴸ, eᴿ) = tdvp(Ht, ψ; vumps_kwargs...)
   for _ in 1:n_expansions
-      ψ = subspace_expansion(ψ, Ht; cutoff=1e-8,maxdim=32)
+      ψ = subspace_expansion(ψ, Ht; cutoff=1e-8,maxdim=8)
       ψ,(eᴸ, eᴿ) = tdvp(Ht, ψ; vumps_kwargs...)      
   end
   eps=2e-6*N
