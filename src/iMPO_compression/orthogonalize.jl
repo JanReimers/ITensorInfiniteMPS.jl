@@ -1,3 +1,5 @@
+import Base: inv
+
 #--------------------------------------------------------------------------------------------
 #
 #  Functions for bringing an iMPO into left or right canonical form
@@ -6,54 +8,22 @@
 #
 #  Outer routine simply established upper or lower regular forms
 #
-@doc """
-    orthogonalize!(H::InfiniteMPO;kwargs...)
-
-Bring `CelledVector` representation of an infinite MPO into left or right canonical form using 
-block respecting QR iteration as described in section Vi B and Alogrithm 3 of:
-> Daniel E. Parker, Xiangyu Cao, and Michael P. Zaletel Phys. Rev. B 102, 035147
-If you intend to also call `truncate!` then do not bother calling `orthogonalize!` beforehand, as `truncate!` will do this automatically and ensure the correct handling of that gauge transforms.
-
-# Arguments
-- H::InfiniteMPO which is `CelledVector` of MPO matrices. `CelledVector` and `InfiniteMPO` are defined in the `ITensorInfiniteMPS` module.
-
-# Keywords
-- `orth::orth_type = left` : choose `left` or `right` canonical form
-- `rr_cutoff::Float64 = -1.0` : cutoff for rank revealing QX which removes zero pivot rows and columns. All rows with max(abs(R[r,:]))<rr_cutoff are considered zero and removed. rr_cutoff=-11.0 indicate no rank reduction.
-
-# Returns
-- Vector{ITensor} with the gauge transforms between the input and output iMPOs
-
-# Examples
-```julia
-julia> using ITensors, ITensorMPOCompression, ITensorInfiniteMPS
-julia> initstate(n) = "↑";
-julia> sites = infsiteinds("S=1/2", 1;initstate, conserve_szparity=false)
-1-element CelledVector{Index{Int64}, typeof(translatecelltags)}:
- (dim=2|id=326|"S=1/2,Site,c=1,n=1")
-#
-# This makes H directly, bypassing autoMPO.  (AutoMPO is too smart for this
-# demo, it makes maximally reduced MPOs right out of the box!)
-#
-julia> H=transIsing_MPO(sites,NNN);
-julia> get_Dw(H)
-1-element Vector{Int64}:
- 17
-julia> orthogonalize!(H;orth=right,rr_cutoff=1e-15);
-julia> get_Dw(H)
-1-element Vector{Int64}:
- 14
-julia> orthogonalize!(H;orth=left,rr_cutoff=1e-15);
-julia> get_Dw(H)
- 1-element Vector{Int64}:
-  13
-julia> isortho(H,left)
-true
+function ITensors.orthogonalize(Hi::reg_form_iMPO;kwargs...)
+  HL=copy(Hi) #not HL yet, but will be after two ortho calls.
+  G0L=orthogonalize!(HL, left; kwargs...)
+  HR = copy(HL)
+  GLR = orthogonalize!(HR,right; kwargs...)
+  G0LR=full_ortho_gauge(G0L,GLR)
+  #
+  #  At this point HL is likely to have a larger bond dimension than HR because the second sweep matters for reducing Dw.
+  #  Truncation will make this discrepency moot.
+  #  If we need a reduced HL for some reason then one more sweep as below can be uncommented.
+  # HL=copy(HR)
+  # GRL = orthogonalize!(HL,left; kwargs...)
+  return HL,HR,GLR,G0LR
+end
 
 
-```
-
-"""
 function orthogonalize!(H::reg_form_iMPO, lr::orth_type; eps_qr=1e-13, max_iter=40, verbose=false, kwargs...)
   gauge_fix!(H)
 
@@ -128,3 +98,57 @@ function RmI(R::BlockSparseTensor)
   end
   return sqrt(eta2)
 end
+
+#
+#  Assumes we first did right orth H0-->HR and the a left orth HR-->HL
+#  The H's should satisfy: H0[K]*G[K]-G[k-1]*HL[k]
+#
+function full_ortho_gauge(G0L::CelledVector{ITensor},GLR::CelledVector{ITensor})
+  @assert length(G0L)==length(GLR)
+  @assert translator(G0L)==translator(GLR)
+  N=length(G0L)
+  G0R=CelledVector{ITensor}(undef,N,translator(G0L))
+  for k in 1:N
+      G0R[k]=Base.inv(G0L[k])*GLR[k]
+      @assert order(G0R[k])==2
+  end
+  return G0R
+end
+
+#
+#  Penrose inversin code used for getting the H0 --> HR gauge transform
+#
+function Base.inv(A::ITensor;tol=1e-12,kwargs...)::ITensor
+@assert order(A)==2
+
+U,s,V=svd(A,ind(A,1);kwargs...)
+if minimum(diag(s))<tol
+  @warn("Trying to solve near singular system. diag(s)=$(diag(s))")
+end
+return dag(V)*invdiag(s)*dag(U)
+end
+
+function invdiag(s::ITensor)
+  return itensor(invdiag(tensor(s)))
+end
+
+function invdiag(s::DiagTensor)
+  # creating a DiagTensor directly seems to be very diffficult
+  sinv=tensor(diagITensor(dag(inds(s))))
+  for i in 1:diaglength(s)
+      s1=1.0/NDTensors.getdiagindex(s,i)
+      NDTensors.setdiagindex!(sinv,s1,i)
+  end
+  return sinv
+end
+
+function invdiag(s::DiagBlockSparseTensor)
+  sinv=DiagBlockSparseTensor(nzblocks(s),dag(inds(s)))
+  for i in 1:diaglength(s)
+      s1=1.0/NDTensors.getdiagindex(s,i)
+      NDTensors.setdiagindex!(sinv,s1,i)
+  end
+  return sinv
+end
+
+
