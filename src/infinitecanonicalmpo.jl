@@ -1,11 +1,5 @@
 
 
-#-------------------------------------------------------------------------------------
-#
-
-# This means that the L/R calculation does not benifit from compression but the rest of VUMPs iteration code
-# Does. At this point it is not clear if compression is always a performance win. We will need to build some experience on this.
-#
 @doc """
     struct InfiniteCanonicalMPO <: AbstractInfiniteMPS <: ITensors.AbstractMPS 
 

@@ -82,12 +82,12 @@ models = [(Model"heisenbergNNN"(), "S=1/2"), (Model"hubbardNNN"(), "Electron")]
       sites = infsiteinds(model[2], Ncell; initstate, conserve_qns=qns)
       Hi = InfiniteMPO(model[1], sites;NNN=NNN)
 
-      Ho = orthogonalize(Hi) #Use default cutoff, C is non-diagonal
+      Ho = orthogonalize(Hi) #Use default cutoff, GLR is non-diagonal
       @test check_ortho(Ho) #AL is left ortho && AR is right ortho
       @test check_gauge_LR(Ho) ≈ 0.0 atol = eps    #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
       @test check_gauge_0R(Ho,Hi) ≈ 0.0 atol = eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
 
-      Ht,BondSpectrums = truncate(Hi) #Use default cutoff,C is now diagonal
+      Ht,BondSpectrums = truncate(Hi) #Use default cutoff,GLR is now diagonal
       @test check_ortho(Ht) #AL is left ortho && AR is right ortho
       @test check_gauge_LR(Ht) ≈ 0.0 atol = eps    #ensure GLR[k-1] * AR[k] - AL[k] * GLR[k]
       @test check_gauge_0R(Ht,Hi) ≈ 0.0 atol = eps #ensure G0R[k-1] * AR[k] - H0[k] * G0R[k]
