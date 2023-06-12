@@ -1,38 +1,41 @@
-using ITensors, ITensorMPOCompression, ITensorInfiniteMPS
+using ITensors, ITensorInfiniteMPS
 using Revise, Printf,Test
+
+using ITensorMPOCompression #For parse_links
+import ITensorMPOCompression: parse_links
 
 import Base: inv
 import ITensorInfiniteMPS: reg_form_iMPO, left_environment, right_environment, AbstractInfiniteMPS
 Base.show(io::IO, f::Float64) = @printf(io, "%1.6f", f) #dumb way to control float output
 
-#   H = ΣⱼΣₙ (½ S⁺ⱼS⁻ⱼ₊ₙ + ½ S⁻ⱼS⁺ⱼ₊ₙ + SᶻⱼSᶻⱼ₊ₙ)
+# #   H = ΣⱼΣₙ (½ S⁺ⱼS⁻ⱼ₊ₙ + ½ S⁻ⱼS⁺ⱼ₊ₙ + SᶻⱼSᶻⱼ₊ₙ)
 
-function ITensorInfiniteMPS.unit_cell_terms(::Model"heisenbergNNN"; NNN::Int64)
-  opsum = OpSum()
-  for n in 1:NNN
-      J = 1.0 / n
-      opsum += J * 0.5, "S+", 1, "S-", 1 + n
-      opsum += J * 0.5, "S-", 1, "S+", 1 + n
-      opsum += J, "Sz", 1, "Sz", 1 + n
-  end
-  return opsum
-end
-function ITensorInfiniteMPS.unit_cell_terms(::Model"hubbardNNN"; NNN::Int64)
-  U::Float64 = 0.25
-  t::Float64 = 1.0
-  V::Float64 = 0.5
-  opsum = OpSum()
-  opsum += (U, "Nupdn", 1)
-  for n in 1:NNN
-    tj, Vj = t / n, V / n
-    opsum += -tj, "Cdagup", 1, "Cup", 1 + n
-    opsum += -tj, "Cdagup", 1 + n, "Cup", 1
-    opsum += -tj, "Cdagdn", 1, "Cdn", 1 + n
-    opsum += -tj, "Cdagdn", 1 + n, "Cdn", 1
-    opsum += Vj, "Ntot", 1, "Ntot", 1 + n
-  end
-  return opsum
-end
+# function ITensorInfiniteMPS.unit_cell_terms(::Model"heisenbergNNN"; NNN::Int64)
+#   opsum = OpSum()
+#   for n in 1:NNN
+#       J = 1.0 / n
+#       opsum += J * 0.5, "S+", 1, "S-", 1 + n
+#       opsum += J * 0.5, "S-", 1, "S+", 1 + n
+#       opsum += J, "Sz", 1, "Sz", 1 + n
+#   end
+#   return opsum
+# end
+# function ITensorInfiniteMPS.unit_cell_terms(::Model"hubbardNNN"; NNN::Int64)
+#   U::Float64 = 0.25
+#   t::Float64 = 1.0
+#   V::Float64 = 0.5
+#   opsum = OpSum()
+#   opsum += (U, "Nupdn", 1)
+#   for n in 1:NNN
+#     tj, Vj = t / n, V / n
+#     opsum += -tj, "Cdagup", 1, "Cup", 1 + n
+#     opsum += -tj, "Cdagup", 1 + n, "Cup", 1
+#     opsum += -tj, "Cdagdn", 1, "Cdn", 1 + n
+#     opsum += -tj, "Cdagdn", 1 + n, "Cdn", 1
+#     opsum += Vj, "Ntot", 1, "Ntot", 1 + n
+#   end
+#   return opsum
+# end
 
 models = [
   (Model"heisenbergNNN"(), "S=1/2"), 
@@ -81,9 +84,9 @@ end
     Lck=Lc[k-1]*Ht.AR[k]*ψ.AL[k]*dag(ψ.AL[k]')
     Rck=Rc[k+1]*Ht.AR[k+1]*ψ.AR[k+1]*dag(ψ.AR[k+1]')
     if k==1
-      il,ir=ITensorMPOCompression.parse_links(Ht.AR[k])
-      il1,ir1=ITensorMPOCompression.parse_links(ψ.AL[k])
-      il2,ir2=ITensorMPOCompression.parse_links(ψ.AR[k+1])
+      il,ir=parse_links(Ht.AR[k])
+      il1,ir1=parse_links(ψ.AL[k])
+      il2,ir2=parse_links(ψ.AR[k+1])
       Lck[ir=>1,ir1=>1,ir1'=>1]-=el
       Rck[ir=>dim(ir),il2=>1,il2'=>1]-=er
     end
@@ -125,10 +128,6 @@ end
 #   Hi=InfiniteMPO(model,s;kwargs...)
 #   Hc,ss=truncate(Hi)
 #   return Hc
-# end
-
-# function ITensorMPOCompression.get_Dw(H::InfiniteMPOMatrix)
-#   return get_Dw(InfiniteMPO(H))
 # end
 
 # Htypes= [InfiniteMPOMatrix,InfiniteMPO,InfiniteCanonicalMPO_orth,InfiniteCanonicalMPO]

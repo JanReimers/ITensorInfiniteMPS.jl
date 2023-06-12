@@ -1,7 +1,7 @@
-using ITensors, ITensorMPOCompression, ITensorInfiniteMPS
+using ITensors, ITensorInfiniteMPS
 using Test, Revise
 
-import ITensorMPOCompression: regform_blocks, extract_blocks,  A0, b0, c0
+import ITensorInfiniteMPS: extract_blocks  
 
 #Base.show(io::IO, f::Float64) = @printf(io, "%1.3f", f) #dumb way to control float output
 

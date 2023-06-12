@@ -29,8 +29,8 @@ import Base: getindex, length, setindex!, +, -, *, truncate
 
 import ITensors: AbstractMPS, ⊕, permute, setinds
 
-import ITensorMPOCompression: @mpoc_assert, parse_links
-import ITensorMPOCompression: orth_type, reg_form, reg_form_Op, is_regular_form, check
+import ITensorMPOCompression: @mpoc_assert, parse_links, slice, assign!
+import ITensorMPOCompression: orth_type, left, right, reg_form, lower, upper, reg_form_Op, is_regular_form, check
 import ITensorMPOCompression: regform_blocks, extract_blocks,  A0, b0, c0, vector_o2, set_𝐛̂_block!, set_𝐜̂_block!, set_𝐝̂_block!
 import ITensorMPOCompression: gauge_fix!,is_gauge_fixed, ac_qx, forward, redim, grow, sweep, check_ortho
 
@@ -87,17 +87,19 @@ export Cell,
   check_gauge_LR, 
   check_gauge_0R, 
   check_ortho,
-  input_inds,
   get_Dw,
   infinitemps_approx,
   infsiteinds,
+  input_inds,
   left,
+  lower,
   nsites,
   orthogonalize,
   orth_type,
   output_inds,
   pprint,
   reference,
+  regform_blocks,
   right,
   subspace_expansion,
   translatecell,
@@ -105,6 +107,7 @@ export Cell,
   translator,
   truncate,
   tdvp,
+  upper,
   vumps,
   finite_mps,
   ⊕,

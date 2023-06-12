@@ -1,5 +1,3 @@
-import ITensorMPOCompression: slice, assign!
-
 struct ALk
     ψ::InfiniteCanonicalMPS
     k::Int

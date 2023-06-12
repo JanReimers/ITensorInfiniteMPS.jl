@@ -1,10 +1,5 @@
-using ITensors
-using ITensorMPOCompression
-using ITensorInfiniteMPS
+using ITensors, ITensorInfiniteMPS
 using Revise
-
-import ITensorInfiniteMPS: reg_form_iMPO, truncate
-import ITensorMPOCompression: gauge_fix!, is_gauge_fixed
 
 function merge_blocks(H::InfiniteMPO)
   cbs=map(n->combiner(linkind(H,n)), eachindex(H))
